@@ -1,0 +1,101 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 1
+      Plane Cell Count: 30
+    - Alpha: 0.7
+      Class: rviz_default_plugins/Map
+      Color Scheme: map
+      Name: SLAM Map
+      Topic:
+        Depth: 1
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
+        Value: /map
+      Update Topic:
+        Value: /map_updates
+      Use Timestamp: false
+    - Alpha: 1
+      Class: rviz_default_plugins/LaserScan
+      Color: 255; 0; 0
+      Color Transformer: FlatColor
+      Name: LaserScan
+      Size (m): 0.06
+      Topic:
+        Depth: 5
+        Reliability Policy: Best Effort
+        Value: /scan
+      Use Fixed Frame: true
+    - Alpha: 0.5
+      Autocompute Intensity Bounds: true
+      Class: rviz_default_plugins/PointCloud2
+      Name: LiDAR 3D
+      Size (m): 0.02
+      Style: Points
+      Topic:
+        Depth: 5
+        Reliability Policy: Best Effort
+        Value: /lidar/points_raw
+    - Class: rviz_default_plugins/RobotModel
+      Description Source: Topic
+      Description Topic:
+        Depth: 1
+        Durability Policy: Transient Local
+        Reliability Policy: Reliable
+        Value: /robot_description
+      Name: RobotModel
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Marker Scale: 0.6
+    - Class: rviz_default_plugins/Image
+      Name: Camera
+      Topic:
+        Depth: 5
+        Reliability Policy: Best Effort
+        Value: /camera/image_raw
+  Enabled: true
+  Global Options:
+    Background Color: 30; 30; 40
+    Fixed Frame: map
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+    - Class: rviz_default_plugins/FocusCamera
+    - Class: rviz_default_plugins/SetInitialPose
+      Topic:
+        Value: /initialpose
+    - Class: rviz_default_plugins/SetGoal
+      Topic:
+        Value: /goal_pose
+    - Class: rviz_default_plugins/PublishPoint
+      Single click: true
+      Topic:
+        Value: /clicked_point
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 28
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Name: Current View
+      Pitch: 1.2
+      Target Frame: <Fixed Frame>
+      Yaw: 0.785
+    Saved: ~

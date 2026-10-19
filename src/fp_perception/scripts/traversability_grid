@@ -1,0 +1,5 @@
+#!/usr/bin/env python3
+from fp_perception.traversability_grid import main
+
+if __name__ == "__main__":
+    main()

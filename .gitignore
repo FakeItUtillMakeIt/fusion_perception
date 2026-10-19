@@ -1,0 +1,77 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+*.ts
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Linker files
+*.ilk
+
+# Debugger Files
+*.pdb
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# debug information files
+*.dwo
+
+/[Bb]uild*
+/[Bb]uild-*
+
+[Rr]uns/
+
+logs/
+
+__pycache__/
+
+.opencode/
+
+# models：忽略目录内容，但允许进入子目录并放行各级 README.md。
+# 不能写 `models`（整目录排除后，git 不再下沉，目录内 ! 反忽略一律无效）。
+models/**
+!models/**/
+!models/**/README.md
+
+config/**
+!config/**/
+!config/**/pipeline_vlm_gate.json
+!config/**/2_infer_fusion.json
+!config/**/3_infer_fusion.json
+
+output
+# ROS2 workspace
+/install/
+/build/
+/log/
+*.egg-info/
+.colcon*
+frames_*.gv
+frames_*.pdf
+__pycache__/
+*.pyc

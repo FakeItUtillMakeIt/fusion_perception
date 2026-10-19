@@ -1,0 +1,8 @@
+# 占位标定文件: 先用 camera_intrinsics solve 填 K/D, 再用 manual_align 填 R/t
+# 约定: X_cam = R_lidar_to_cam * X_lidar + t_lidar_to_cam
+image_width: 1920
+image_height: 1080
+K: [1000.0, 0.0, 960.0, 0.0, 1000.0, 540.0, 0.0, 0.0, 1.0]
+D: []
+R_lidar_to_cam: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
+t_lidar_to_cam: [0.0, 0.0, 0.0]

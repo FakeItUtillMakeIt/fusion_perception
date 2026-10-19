@@ -1,0 +1,283 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="factory_robot">
+
+  <!-- ============ 基础参数 ============ -->
+  <xacro:property name="wheel_r" value="0.075"/>
+  <xacro:property name="wheel_w" value="0.05"/>
+
+  <!-- ============ base_link：差速底盘 ============ -->
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 0.175" rpy="0 0 0"/>
+      <geometry><box size="0.6 0.5 0.25"/></geometry>
+      <material name="mat1"><color rgba="0.3 0.3 0.35 1.0"/></material>
+    </visual>
+    <collision>
+      <origin xyz="0 0 0.175" rpy="0 0 0"/>
+      <geometry><box size="0.6 0.5 0.25"/></geometry>
+    </collision>
+    <inertial>
+      <origin xyz="0 0 0.175"/>
+      <mass value="18.0"/>
+      <inertia ixx="0.55" ixy="0" ixz="0" iyy="0.71" iyz="0" izz="0.43"/>
+    </inertial>
+  </link>
+
+  <!-- ============ 驱动轮 x2 ============ -->
+  <xacro:macro name="drive_wheel" params="prefix y_reflect">
+    <link name="${prefix}_wheel_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry><cylinder radius="${wheel_r}" length="${wheel_w}"/></geometry>
+        <material name="mat2"><color rgba="0.1 0.1 0.1 1.0"/></material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry><cylinder radius="${wheel_r}" length="${wheel_w}"/></geometry>
+      </collision>
+      <inertial>
+        <mass value="0.6"/>
+        <inertia ixx="0.0011" ixy="0" ixz="0" iyy="0.0011" iyz="0" izz="0.0017"/>
+      </inertial>
+    </link>
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="${prefix}_wheel_link"/>
+      <origin xyz="0 ${y_reflect*0.3} ${wheel_r}" rpy="${-pi/2} 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+  </xacro:macro>
+  <xacro:drive_wheel prefix="left" y_reflect="1"/>
+  <xacro:drive_wheel prefix="right" y_reflect="-1"/>
+
+  <!-- ============ 后部两个从动轮：转向关节(绕z自由)+自由轮(绕y自由)，
+       差速车4轮标准结构；离地留 3mm 间隙保证驱动轮承重不打滑 ============ -->
+  <xacro:macro name="rear_caster_wheel" params="prefix y_reflect">
+    <link name="${prefix}_steer_link">
+      <inertial>
+        <mass value="0.1"/>
+        <inertia ixx="0.0002" ixy="0" ixz="0" iyy="0.0002" iyz="0" izz="0.0002"/>
+      </inertial>
+    </link>
+    <joint name="${prefix}_steer_joint" type="revolute">
+      <parent link="base_link"/>
+      <child link="${prefix}_steer_link"/>
+      <origin xyz="-0.22 ${y_reflect*0.345} 0.078" rpy="0 0 0"/>
+      <axis xyz="0 0 1"/>
+      <limit effort="1.0" velocity="4.0" lower="-1.4" upper="1.4"/>
+      <dynamics damping="0.3"/>
+    </joint>
+    <link name="${prefix}_wheel_link">
+      <visual>
+        <geometry><cylinder radius="${wheel_r}" length="${wheel_w}"/></geometry>
+        <material name="${prefix}_wheel_mat"><color rgba="0.1 0.1 0.1 1.0"/></material>
+      </visual>
+      <collision>
+        <geometry><cylinder radius="${wheel_r}" length="${wheel_w}"/></geometry>
+      </collision>
+      <inertial>
+        <mass value="0.4"/>
+        <inertia ixx="0.0005" ixy="0" ixz="0" iyy="0.0005" iyz="0" izz="0.0011"/>
+      </inertial>
+    </link>
+    <joint name="${prefix}_wheel_joint" type="continuous">
+      <parent link="${prefix}_steer_link"/>
+      <child link="${prefix}_wheel_link"/>
+      <origin xyz="-0.03 0 0" rpy="${-pi/2} 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+    <gazebo reference="${prefix}_wheel_link">
+      <mu1>0.5</mu1>
+      <mu2>0.5</mu2>
+      <kp>100000.0</kp>
+      <kd>500.0</kd>
+    </gazebo>
+  </xacro:macro>
+  <xacro:rear_caster_wheel prefix="rear_left" y_reflect="1"/>
+  <xacro:rear_caster_wheel prefix="rear_right" y_reflect="-1"/>
+
+  <!-- ============ 3D LiDAR（x=0.35, z=0.8，水平安装） ============ -->
+  <link name="lidar_link">
+    <visual>
+      <geometry><cylinder radius="0.05" length="0.08"/></geometry>
+      <material name="mat4"><color rgba="0.05 0.05 0.1 1.0"/></material>
+    </visual>
+    <collision>
+      <geometry><cylinder radius="0.05" length="0.08"/></geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <inertia ixx="0.0006" ixy="0" ixz="0" iyy="0.0006" iyz="0" izz="0.0004"/>
+    </inertial>
+  </link>
+  <joint name="lidar_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="lidar_link"/>
+    <origin xyz="0.35 0 0.8" rpy="0 0 0"/>
+  </joint>
+
+  <gazebo reference="lidar_link">
+    <!-- 31 线 -15..+15 度（含 0 度水平线），供 pointcloud_to_laserscan 切 ±0.05m 得到完整 2D 扫描 -->
+    <sensor name="lidar" type="ray">
+      <pose>0 0 0 0 0 0</pose>
+      <always_on>true</always_on>
+      <visualize>false</visualize>
+      <update_rate>10.0</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>180</samples>
+            <resolution>1.0</resolution>
+            <min_angle>-3.14159</min_angle>
+            <max_angle>3.14159</max_angle>
+          </horizontal>
+          <vertical>
+            <samples>3</samples>
+            <resolution>1.0</resolution>
+            <min_angle>-0.2618</min_angle>
+            <max_angle>0.2618</max_angle>
+          </vertical>
+        </scan>
+        <range>
+          <min>0.2</min>
+          <max>30.0</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.02</stddev>
+        </noise>
+      </ray>
+      <plugin name="lidar_ros" filename="libgazebo_ros_ray_sensor.so">
+        <ros>
+          <remapping>~/out:=/lidar/points_raw</remapping>
+        </ros>
+        <output_type>sensor_msgs/PointCloud2</output_type>
+        <frame_name>lidar_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- ============ RGB 相机（x=0.4, z=0.9，俯视 10 度） ============ -->
+  <link name="camera_link">
+    <visual>
+      <geometry><box size="0.06 0.08 0.05"/></geometry>
+      <material name="mat5"><color rgba="0.1 0.1 0.15 1.0"/></material>
+    </visual>
+    <inertial>
+      <mass value="0.1"/>
+      <inertia ixx="0.00001" ixy="0" ixz="0" iyy="0.00001" iyz="0" izz="0.00001"/>
+    </inertial>
+  </link>
+  <joint name="camera_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_link"/>
+    <origin xyz="0.4 0 0.9" rpy="0 0 0"/>
+  </joint>
+
+  <gazebo reference="camera_link">
+    <sensor name="camera" type="camera">
+      <!-- gazebo 相机光轴沿 sensor +x，pitch=+0.1745 rad 即向下俯视 10 度 -->
+      <pose>0 0 0 0 0.1745 0</pose>
+      <always_on>true</always_on>
+      <update_rate>15.0</update_rate>
+      <camera>
+        <!-- hfov = 2*atan(320/500) -> fx=fy=500, cx=320, cy=192 -->
+        <horizontal_fov>1.1408</horizontal_fov>
+        <image>
+          <width>640</width>
+          <height>384</height>
+          <format>R8G8B8</format>
+        </image>
+        <clip>
+          <near>0.05</near>
+          <far>30.0</far>
+        </clip>
+      </camera>
+      <plugin name="camera_ros" filename="libgazebo_ros_camera.so">
+        <ros>
+          <remapping>~/image_raw:=/camera/image_raw</remapping>
+          <remapping>~/camera_info:=/camera/camera_info</remapping>
+        </ros>
+        <camera_name>camera</camera_name>
+        <frame_name>camera_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- ============ IMU ============ -->
+  <link name="imu_link">
+    <inertial>
+      <mass value="0.05"/>
+      <inertia ixx="0.000001" ixy="0" ixz="0" iyy="0.000001" iyz="0" izz="0.000001"/>
+    </inertial>
+  </link>
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="imu_link"/>
+    <origin xyz="0 0 0.5" rpy="0 0 0"/>
+  </joint>
+
+  <gazebo reference="imu_link">
+    <sensor name="imu" type="imu">
+      <always_on>true</always_on>
+      <update_rate>50.0</update_rate>
+      <imu>
+        <angular_velocity>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>2e-4</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>2e-4</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>2e-4</stddev></noise></z>
+        </angular_velocity>
+        <linear_acceleration>
+          <x><noise type="gaussian"><mean>0.0</mean><stddev>2e-2</stddev></noise></x>
+          <y><noise type="gaussian"><mean>0.0</mean><stddev>2e-2</stddev></noise></y>
+          <z><noise type="gaussian"><mean>0.0</mean><stddev>2e-2</stddev></noise></z>
+        </linear_acceleration>
+      </imu>
+      <plugin name="imu_ros" filename="libgazebo_ros_imu_sensor.so">
+        <ros>
+          <remapping>~/out:=/imu</remapping>
+        </ros>
+        <frame_name>imu_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <!-- ============ 关节状态发布（从物理仿真读全部活动关节 -> /joint_states，
+       robot_state_publisher 据此发布轮子/转向 TF，rviz RobotModel 不再报缺变换） ============ -->
+  <gazebo>
+    <plugin name="joint_state_publisher" filename="libgazebo_ros_joint_state_publisher.so">
+      <ros>
+        <remapping>~/out:=/joint_states</remapping>
+      </ros>
+      <update_rate>30.0</update_rate>
+      <joint_name>left_wheel_joint</joint_name>
+      <joint_name>right_wheel_joint</joint_name>
+      <joint_name>rear_left_steer_joint</joint_name>
+      <joint_name>rear_left_wheel_joint</joint_name>
+      <joint_name>rear_right_steer_joint</joint_name>
+      <joint_name>rear_right_wheel_joint</joint_name>
+    </plugin>
+  </gazebo>
+
+  <!-- ============ 差速驱动插件 ============ -->
+  <gazebo>
+    <plugin name="diff_drive" filename="libgazebo_ros_diff_drive.so">
+      <update_rate>30.0</update_rate>
+      <left_joint>left_wheel_joint</left_joint>
+      <right_joint>right_wheel_joint</right_joint>
+      <wheel_separation>0.6</wheel_separation>
+      <wheel_diameter>0.15</wheel_diameter>
+      <max_wheel_torque>20.0</max_wheel_torque>
+      <max_wheel_acceleration>1.5</max_wheel_acceleration>
+      <publish_odom>true</publish_odom>
+      <publish_odom_tf>true</publish_odom_tf>
+      <publish_wheel_tf>false</publish_wheel_tf>
+      <publish_joint_state>false</publish_joint_state>
+      <odometry_frame>odom</odometry_frame>
+      <robot_base_frame>base_link</robot_base_frame>
+    </plugin>
+  </gazebo>
+
+</robot>

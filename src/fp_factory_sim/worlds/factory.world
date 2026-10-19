@@ -1,0 +1,113 @@
+<?xml version="1.0"?>
+<!-- factory.world: 30x30m 工厂场景，用于 SLAM/导航验证
+     障碍物测试目的（与 todo.md Prompt B 一致）:
+     - pallet 托盘(0.15m 高): 低于 2D 扫描面(0.8m)，验证感知补盲必要性（SLAM 应看不到）
+     - stacks 箱堆(0.6/1.2m 高): 遮挡验证；下层箱体部分低于扫描面
+     - machine 机器(1.5m 高): 大障碍，SLAM 主目标
+     - trench 线槽(0.06m 高): step_height 阈值验证（SLAM 应看不到） -->
+<sdf version="1.6">
+  <world name="factory">
+
+    <physics type="ode">
+      <!-- 500 step/s x 0.002 s = 1x 实时; step 与 update_rate 必须一起改 -->
+      <max_step_size>0.002</max_step_size>
+      <real_time_update_rate>500.0</real_time_update_rate>
+      <real_time_factor>1</real_time_factor>
+    </physics>
+
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <model name="outer_wall_north">
+      <static>1</static>
+      <pose>0 15.1 1.25 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>30.4 0.2 2.5</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>30.4 0.2 2.5</size></box></geometry>
+          <material><ambient>0.6 0.6 0.6 1</ambient><diffuse>0.6 0.6 0.6 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="outer_wall_south">
+      <static>1</static>
+      <pose>0 -15.1 1.25 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>30.4 0.2 2.5</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>30.4 0.2 2.5</size></box></geometry>
+          <material><ambient>0.6 0.6 0.6 1</ambient><diffuse>0.6 0.6 0.6 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="outer_wall_east">
+      <static>1</static>
+      <pose>15.1 0 1.25 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.2 30.4 2.5</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.2 30.4 2.5</size></box></geometry>
+          <material><ambient>0.6 0.6 0.6 1</ambient><diffuse>0.6 0.6 0.6 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="outer_wall_west">
+      <static>1</static>
+      <pose>-15.1 0 1.25 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.2 30.4 2.5</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.2 30.4 2.5</size></box></geometry>
+          <material><ambient>0.6 0.6 0.6 1</ambient><diffuse>0.6 0.6 0.6 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- 托盘: 1.2x1.0x0.15, x=5.0 y=0.5 -->
+    <model name="pallet">
+      <static>1</static>
+      <pose>5.0 0.5 0.075 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>1.2 1.0 0.15</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>1.2 1.0 0.15</size></box></geometry>
+          <material><ambient>0.7 0.5 0.2 1</ambient><diffuse>0.7 0.5 0.2 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- 箱子堆: 两个 0.6 立方叠放, x=8.0 y=-1.0 -->
+    <model name="stacks">
+      <static>1</static>
+      <link name="link">
+        <collision name="c1"><pose>8.0 -1.0 0.3 0 0 0</pose>
+          <geometry><box><size>0.6 0.6 0.6</size></box></geometry></collision>
+        <visual name="v1"><pose>8.0 -1.0 0.3 0 0 0</pose>
+          <geometry><box><size>0.6 0.6 0.6</size></box></geometry>
+          <material><ambient>0.4 0.5 0.7 1</ambient><diffuse>0.4 0.5 0.7 1</diffuse></material></visual>
+        <collision name="c2"><pose>8.0 -1.0 0.9 0 0 0</pose>
+          <geometry><box><size>0.6 0.6 0.6</size></box></geometry></collision>
+        <visual name="v2"><pose>8.0 -1.0 0.9 0 0 0</pose>
+          <geometry><box><size>0.6 0.6 0.6</size></box></geometry>
+          <material><ambient>0.4 0.5 0.7 1</ambient><diffuse>0.4 0.5 0.7 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- 大机器: 2.0x1.2x1.5, x=3.5 y=2.0 -->
+    <model name="machine">
+      <static>1</static>
+      <pose>3.5 2.0 0.75 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>2.0 1.2 1.5</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>2.0 1.2 1.5</size></box></geometry>
+          <material><ambient>0.3 0.6 0.3 1</ambient><diffuse>0.3 0.6 0.3 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- 低台阶/线槽: 2.0x0.2x0.06, x=6.0 y=-2.0 -->
+    <model name="trench">
+      <static>1</static>
+      <pose>6.0 -2.0 0.03 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>2.0 0.2 0.06</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>2.0 0.2 0.06</size></box></geometry>
+          <material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.15 0.15 0.15 1</diffuse></material></visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

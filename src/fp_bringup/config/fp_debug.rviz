@@ -1,0 +1,95 @@
+Panels:
+  - Class: rviz_common/Displays
+    Help Height: 70
+    Name: Displays
+    Tree Height: 500
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Enabled: true
+      Name: Grid
+      Value: true
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Name: TF
+      Value: true
+    - Class: rviz_default_plugins/PointCloud2
+      Color Transformer: RGB8
+      Enabled: true
+      Name: SemanticPoints
+      Size (m): 0.04
+      Style: Flat Squares
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /fp/points_policy
+      Value: true
+    - Class: rviz_default_plugins/PointCloud2
+      Color Transformer: FlatColor
+      Enabled: false
+      Name: RawLidar
+      Size (m): 0.02
+      Style: Flat Squares
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /hesai/points
+      Value: false
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Name: SegVis
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /fp/sem_vis
+      Value: true
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Name: Overlay
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /fp/overlay
+      Value: true
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Name: Camera
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+        Value: /camera/image_raw
+      Value: true
+  Global Options:
+    Background Color: 30; 30; 40
+    Fixed Frame: lidar_link
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 16
+      Focal Point:
+        X: 2
+        Y: 0
+        Z: 0
+      Name: Current View
+      Pitch: 0.55
+      Yaw: 0.9
+      Value: Orbit (rviz)

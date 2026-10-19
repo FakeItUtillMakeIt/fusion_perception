@@ -1,0 +1,5 @@
+#!/usr/bin/env python3
+from fp_calibration.board_extrinsics import main
+
+if __name__ == "__main__":
+    main()

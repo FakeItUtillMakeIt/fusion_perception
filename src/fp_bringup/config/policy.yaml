@@ -1,0 +1,33 @@
+# ADE20K 语义类别 -> 可通行性策略分组
+# classes 可写 ADE20K 类别名(小写)或直接写 label id(0-149), 未识别的名字会被忽略
+groups:
+  passable:
+    color: [0, 200, 0]
+    classes: [road, sidewalk, floor, path, runway, bridge, pier, rug]
+  soft:
+    color: [0, 220, 220]
+    classes: [grass, plant, tree, palm, flower, field, earth, sand, dirt track, rock, mountain, hill]
+  hard:
+    color: [0, 0, 230]
+    classes: [person, animal, car, truck, bus, van, bicycle, minibike, airplane, boat, ship,
+              fence, railing, bannister, wall, building, house, door, cabinet, wardrobe,
+              chair, swivel chair, armchair, seat, stool, ottoman, bench, box, ashcan, barrel,
+              basket, pole, column, grandstand, booth, tent, awning, fountain,
+              refrigerator, stove, oven, sink, toilet, bathtub, washer, microwave,
+              fireplace, radiator, counter, countertop, desk, table, coffee table,
+              kitchen island, chest of drawers, bookcase, shelf, sofa,
+              stairs, step, stairway, escalator, traffic light, streetlight, signboard,
+              computer, television receiver, monitor, crt screen, arcade machine,
+              bottle, pot, vase, lamp, light, chandelier, sconce, clock,
+              towel, pillow, cushion, blanket, apparel, ball, plaything, food,
+              painting, poster, bulletin board, screen, mirror]
+  transparent:
+    color: [255, 0, 255]
+    classes: [windowpane, glass, screen door, blind,
+              water, river, pond, lake, sea, ocean, swimming pool]
+
+# filtered_points 中会被剔除的组(默认不剔除, 先只做标注观察)
+costmap_drop_groups: []
+
+unknown:
+  color: [128, 128, 128]
