@@ -4,6 +4,7 @@
 非地面点云 -> DBSCAN 聚类 -> 凸包+RDP 简化 -> ObstacleArray + MarkerArray。
 含轻量跨帧 id 跟踪（最近邻匹配）。
 """
+import math
 import numpy as np
 import rclpy
 from rclpy.node import Node
@@ -35,6 +36,7 @@ class DetectNode(Node):
         self.match_dist = d('track_match_dist', 0.6).value
         self.stale = d('track_stale', 2.0).value
         self.min_size = d('min_polygon_size', 0.15).value
+        self.max_extent = d('max_obb_extent', 10.0).value
 
         self.pub = self.create_publisher(ObstacleArray, '/fp_ob/obstacles', 10)
         self.pub_m = self.create_publisher(MarkerArray, '/fp_ob/markers', 10)
@@ -101,6 +103,8 @@ class DetectNode(Node):
                 (cx, cy), (bw, bl), bang = rect
                 if bw < self.min_size or bl < self.min_size:
                     continue
+                if bw > self.max_extent or bl > self.max_extent:
+                    continue
                 box = cv2.boxPoints(rect).astype(np.float64)
                 ob = Obstacle()
                 ob.header = msg.header
@@ -143,13 +147,34 @@ class DetectNode(Node):
             co, so = np.cos(np.radians(bang)), np.sin(np.radians(bang))
             hw, hl = bw / 2, bl / 2
             cs = [(-hw, -hl), (hw, -hl), (hw, hl), (-hw, hl)]
-            verts = [(cx + x * co - y * so, cy + x * so + y * co, z) for x, y in cs for z in (z0, z1)]
-            verts = {i: v for i, v in enumerate(verts)}
+            plan = [(cx + x * co - y * so, cy + x * so + y * co) for x, y in cs]
+            # 顶点顺序：0-3 底环，4-7 顶环（与棱索引表配对）
+            verts = [Point(x=px, y=py, z=z0) for px, py in plan] + \
+                    [Point(x=px, y=py, z=z1) for px, py in plan]
             edges = [(0, 1), (1, 2), (2, 3), (3, 0), (4, 5), (5, 6), (6, 7), (7, 4),
                      (0, 4), (1, 5), (2, 6), (3, 7)]
-            mk.points = [Point(x=verts[a][0], y=verts[a][1], z=verts[a][2])
-                         for e in edges for a in e]
+            mk.points = [verts[a] for e in edges for a in e]
             markers.markers.append(mk)
+            # 实心长方体：中心/朝向/尺寸全部来自 OBB
+            cube = Marker()
+            cube.header = msg.header
+            cube.ns = 'cubes'
+            cube.id = tr['id'] * 2
+            cube.type = Marker.CUBE
+            cube.action = Marker.ADD
+            yaw = math.atan2(plan[1][1] - plan[0][1], plan[1][0] - plan[0][0])
+            L = math.hypot(plan[1][0] - plan[0][0], plan[1][1] - plan[0][1])
+            W = math.hypot(plan[2][0] - plan[1][0], plan[2][1] - plan[1][1])
+            H = max(0.1, z1 - z0)
+            cube.pose.position.x = sum(p[0] for p in plan) / 4
+            cube.pose.position.y = sum(p[1] for p in plan) / 4
+            cube.pose.position.z = (z0 + z1) / 2
+            cube.pose.orientation.z = math.sin(yaw / 2)
+            cube.pose.orientation.w = math.cos(yaw / 2)
+            cube.scale.x, cube.scale.y, cube.scale.z = L, W, H
+            cube.color.g = 0.7
+            cube.color.a = 0.35 if tr['miss'] == 0 else 0.15
+            markers.markers.append(cube)
             tx = Marker()
             tx.header = msg.header
             tx.ns = 'obstacles'
@@ -166,12 +191,13 @@ class DetectNode(Node):
             markers.markers.append(tx)
             cur_ids.update((tr['id'] * 2, tr['id'] * 2 + 1))
         for gone in self.live_marker_ids - cur_ids:
-            dm = Marker()
-            dm.header = msg.header
-            dm.ns = 'obstacles'
-            dm.id = gone
-            dm.action = Marker.DELETE
-            markers.markers.append(dm)
+            for ns in ('obstacles', 'cubes'):
+                dm = Marker()
+                dm.header = msg.header
+                dm.ns = ns
+                dm.id = gone
+                dm.action = Marker.DELETE
+                markers.markers.append(dm)
         self.live_marker_ids = cur_ids
         self.pub.publish(arr)
         self.pub_m.publish(markers)
