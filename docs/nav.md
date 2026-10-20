@@ -21,6 +21,12 @@ export PATH=/usr/bin:$PATH
 
 - 机器人默认 spawn 在 (0,0) 朝 +x：nav2_params.yaml 已配 `set_initial_pose: True` +
   `initial_pose_x/y/a: 0,0,0`，**amcl 自动收敛，无需手动**
+- **仿真专用一键精确初始化**（读 odom 真值喂 initialpose，实测误差 0.1cm）：
+```bash
+ros2 run fp_factory_sim set_initial_pose_from_odom
+```
+- 手点 "2D Pose Estimate" 有 ±10~30cm 人为误差属正常；amcl 行驶稳态 ±5~10cm 是收敛物理
+  极限（地图线宽/扫描噪声/栅格决定），不是故障；若恒定偏一个方向 → 地图鬼影问题，重建图
 - 改了 spawn 位姿或定位跑飞时，手动给（rviz 工具栏 "2D Pose Estimate" 点+拖出朝向）：
 ```bash
 ros2 topic pub --once /initialpose geometry_msgs/msg/PoseWithCovarianceStamped \
