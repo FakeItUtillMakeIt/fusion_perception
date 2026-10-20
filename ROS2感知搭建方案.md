@@ -1,5 +1,7 @@
 # ROS2 搭建方案（基于最新感知模块设计）
 
+> **v2 修订（2026-10-20）**：已并入评审意见——①像素关联改为点云前投影；②竖直玻璃改 mask 地脚线法；③塑料袋改几何规则主导（ADE20K 无该类）；④明确净化分支安全红线；⑤定义与现有 fp_perception 管线的复用关系；⑥补时序"快进慢出"原则、性能预算、仿真验证边界与分阶段实施计划。详见 §9~§11。
+
 > 
 > 模块定位：**障碍物感知模块，独立于代价地图**
 > 核心目标：多线激光(16/32线)+相机语义分割 + 规则融合；输出`ObstacleArray`，包含`vertical_glass` / `raised_plastic_bag` / `general_obstacle`；附带激光观测净化分支（镜面剔除虚点、积水/平放玻璃/薄塑料袋噪点过滤）
@@ -28,21 +30,25 @@
 └─ 时间同步：图像、mask、点云 时间戳对齐
 
 感知融合主节点 obstacle_perception_node
-├─ 步骤1：mask像素反投影到3D空间，生成ROI空间区域
-├─ 步骤2：观测净化分支（修改原始点云）
+├─ 步骤1：点云前投影到像素取语义标签（点→mask 查表，复用 lidar_label_node 投影逻辑），生成语义ROI
+│   ※ 修订：像素无深度，不存在"像素反投影成3D"；正确方向是 3D→2D 查表关联
+├─ 步骤2：观测净化分支（只作用于检测分支输入，见 §9 安全红线）
 │   ├─ mirror mask：删除ROI内镜面反射虚点
-│   ├─ flat_glass / water / flat_plastic mask：过滤该区域零散噪点，不生成障碍物
+│   ├─ flat glass / water / flat plastic mask：过滤该区域零散噪点，不生成障碍物
 ├─ 步骤3：障碍物检测分支（基于净化后的点云）
 │   ├─ 语义ROI几何校验：
-│   │   · glass mask + 平面拟合(法向竖直) → vertical_glass障碍物
-│   │   · plastic_bag mask + 凸起高度 ≥底盘间隙 → raised_plastic_bag障碍物
+│   │   · glass mask：**地脚线法**——mask 下边缘投影到地面生成线段→膨胀成障碍区域，点云回波仅作存在性佐证
+│   │     （修订：玻璃透射/镜面导致 ROI 内点云稀少，靠点云平面拟合会漏检）
+│   │   · plastic_bag：**几何规则主导**——非地面低凸起+法向杂乱/弱回波+凸起≥底盘间隙 → raised_plastic_bag
+│   │     （修订：ADE20K 无 plastic_bag 类，语义只能作可选先验，见 §9）
 │   ├─ 普通障碍物：剩余点云做地面分割+聚类，无匹配语义mask → general_obstacle
 │   ├─ 类别优先级：语义类别 > general_obstacle（同一区域优先语义类别）
 │   ├─ 轮廓提取、多边形简化、重叠多边形合并
 └─ 输出自定义消息 ObstacleArray（base_link坐标系，多边形+类别+置信+高度区间）
 
 上层消费端（不属于本模块）
-└─ 订阅 ObstacleArray，可自行做碰撞检测 / 转Nav2代价地图
+├─ 订阅 ObstacleArray，可自行做碰撞检测 / 转Nav2代价地图
+└─ ※ 安全红线：原始点云/scan_low → costmap 的安全回路不经过本模块净化，净化永不消除"安全回路里的障碍"
 ```
 
 ## 1、依赖包清单
@@ -71,6 +77,8 @@ float32 confidence
 geometry_msgs/Polygon polygon
 float32 min_height
 float32 max_height
+int32 id                # v2: 跨帧跟踪关联 id
+string source           # v2: 来源标记 semantic / geometric / fused
 ```
 
 新建 `msg/ObstacleArray.msg`
@@ -117,6 +125,11 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 
 可选：发布类别置信图，方便时序滤波。
 
+> **类别可用性（v2 修订）**：现役 segformer-b2/ADE20K 有 windowpane/glass、mirror、water、floor/carpet 等，**没有 plastic_bag**（近似类仅 handbag，不可靠）。因此：
+> - glass/mirror/water：直接用现有 segformer_node 输出 + policy.yaml 映射，**零训练成本**
+> - plastic_bag：V1 走**纯几何规则**（见节点3分支B），语义先验留待 V2 微调（需采集塑料袋场景数据，预算 1~2 周，暂不排期）
+> - 本节点**直接复用现有 `fp_perception/segformer_node`**（含 smooth_k 时域平滑），不重复建设
+
 ### 节点2：`pointcloud_preprocess_node` 点云预处理节点
 
 输入：原始`/points_raw`
@@ -140,22 +153,25 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 
 #### 分支A：观测净化（输出净化后的点云，用于下游检测，不输出障碍物多边形）
 
-1. mask反投影：利用内参+TF，把mask像素投影到3D空间，得到每个语义类别对应的ROI点云区域
+1. 语义关联（v2 修订）：点云**前投影**到像素（K·[R|t] + TF），逐点查 mask 得语义标签，按类别圈出 3D ROI（复用 lidar_label_node 已验收的投影链路）
 2. mirror：ROI区域内剔除镜面反射虚假点
 3. flat glass / water / flat plastic bag：ROI区域过滤零散噪点；**判定可通行，不生成障碍物**
 
-> 
 > 输出话题 `/points_cleaned` 净化后点云，作为障碍物检测输入
+> **安全红线（v2 新增）**：净化输出仅供检测分支消费；原始 `/points_raw`、`/scan_low`→costmap 的安全链路**绝不接入净化结果**。语义误判最多导致"多报"，绝不允许因净化导致"漏报"。
 
 #### 分支B：障碍物检测（生成ObstacleArray）
 
 输入：`/points_cleaned`
 
-1. 对glass ROI区域：点云平面拟合，计算平面法向量、平面高度
-   - 竖直玻璃（法向接近水平）→ 类别`vertical_glass`，提取轮廓生成多边形
-   - 平放玻璃 → 可通行，跳过，不输出障碍物
-2. 对plastic_bag ROI区域：计算ROI区域相对地面的凸起高度（取90%分位高度，避免单点噪声）
-   - 凸起高度 ≥ 底盘安全间隙 → `raised_plastic_bag`，输出多边形
+1. glass ROI（v2 修订为**地脚线法**）：
+   - 取 glass mask 的**下边缘像素**，逐像素与地面求交投影到 base_link → 得到"地脚线段"序列
+   - 连续地脚线段合并→按最小障碍宽度（如 0.3m）膨胀成多边形 → `vertical_glass`
+   - ROI 内若有回波点：平面拟合法向接近竖直 → 置信度加成；**无回波不作为排除条件**（玻璃本就少回波）
+   - mask 区域悬空（下边缘不在地面，如玻璃隔断上方的窗）→ 判定非竖直障碍，跳过
+2. plastic_bag（v2 修订为**几何主导**）：
+   - 候选=非地面点簇中：顶面高度在 [地面, 地面+0.4m] 且凸起 90% 分位 ≥ `chassis_gap_threshold` 且平面拟合残差大（形态杂乱）或回波强度异常
+   - 满足 → `raised_plastic_bag`；若接入微调模型再叠加语义先验
    - 凸起高度 < 底盘间隙 → 可通行，跳过
 3. 其余非地面点云，**不属于任何语义mask区域**：
    - 欧式聚类，聚类提取障碍物点簇
@@ -189,7 +205,8 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 所有语义mask触发规则，**不使用单帧结果**：
 
 - 维护滑动窗口（例如5帧），连续多帧检出同类mask，才启用观测净化或者障碍物输出；
-- 抑制单帧误识别（尤其是积水高光容易瞬时误检）。
+- 抑制单帧误识别（尤其是积水高光容易瞬时误检）；
+- **不对称原则（v2 新增）：障碍快进慢出**——新障碍 1 帧即输出（宁可虚警），障碍消失需 N 帧连续确认才删除（防止语义闪烁导致障碍突然消失）；净化（删点）则相反：**慢进快出**，存疑时保留点。
 
 ## 6、Launch 文件组织示例
 
@@ -241,65 +258,38 @@ obstacle_perception_node:
 3. **多边形合并**：多个相邻障碍物聚类会生成多个小多边形，必须增加重叠融合逻辑，避免碎片化；
 4. 镜面虚点剔除：镜面虚点形态多变，V1只做mask ROI区域点删除，不做全点云镜面检测，控制复杂度。
 
-## Markdown 完整章节，直接粘贴进方案文档
+## 9、与现有 fp_perception 管线的关系（v2 新增）
 
-```
-# ROS2系统搭建方案
-> 模块定位：障碍物感知模块，独立于导航代价地图；输出自定义ObstacleArray消息，上层消费端自行处理代价图或碰撞检测。
-> 硬件：16/32线多线激光雷达 + RGB相机；ROS2版本：Humble/Jazzy
+**不重建，只补缺**。现有资产与本方案节点的映射：
 
-## 整体架构
-模块分为观测净化子模块、障碍物检测子模块；以多线点云+相机语义分割为输入，基于规则融合，输出带类别障碍物多边形数组。
-数据流：相机图像→语义推理mask；多线激光→原始点云；经过时间同步、TF坐标转换，送入障碍物感知核心节点；先执行观测净化清洗点云，再做障碍物检测，生成ObstacleArray。
+| 本方案节点 | 现有资产 | 处置 |
+|---|---|---|
+| semantic_infer_node | `fp_perception/segformer_node`（含 smooth_k、policy.yaml 分组） | **直接复用**，policy 增加 glass/mirror/water 组映射 |
+| mask↔点云关联 | `fp_perception/lidar_label_node`（前投影逐点打标，标定已验收） | **复用投影逻辑**（抽到 fp_common） |
+| 点云预处理 | 无（现有仅 z 过滤） | **新建**：linefit 地面分割 + 离群滤波 |
+| 几何校验/聚类/多边形 | 无 | **新建**：obstacle_perception_node 核心增量 |
+| ObstacleArray 消费 | `traversability_grid`（四级代价） | **并存 A/B**：traversability 继续跑，新增 ObstacleArray→costmap polygon layer，对比后决定去留 |
 
-### 消息定义
-自定义ROS2消息 Obstacle / ObstacleArray
-Obstacle：
-- std_msgs/Header header
-- string class_name：类别 vertical_glass / raised_plastic_bag / general_obstacle
-- float32 confidence：置信度0~1
-- geometry_msgs/Polygon polygon：base_link坐标系下2D轮廓
-- float32 min_height、max_height：障碍物高度区间
+## 10、验证边界与性能预算（v2 新增）
 
-ObstacleArray：Obstacle数组，带header。
+**仿真能验什么、不能验什么**（Gazebo Classic ray 传感器不模拟透射/镜面反射）：
 
-## 节点拆分设计（解耦设计，便于单独调试）
-1. semantic_infer_node：语义分割推理节点
-    输入：相机图像、camera_info；输出像素级语义mask与类别置信图，类别包含glass/mirror/water/plastic_bag。
-2. pointcloud_preprocess_node：点云预处理节点
-    输入原始点云，去除异常点，使用linefit地面分割分离地面点、非地面候选点云；输出预处理点云与非地面点云。
-3. obstacle_perception_node（核心融合节点，C++）
-    输入：语义mask、预处理点云、TF变换；内部包含观测净化分支、障碍物检测分支。
-    - 观测净化分支：将mask像素反投影到3D空间得到ROI；镜面区域剔除虚假激光点；平放玻璃、积水、平铺/轻微鼓起塑料袋仅过滤噪点，判定为可通行，**不输出障碍物多边形**。
-    - 障碍物检测分支：
-        ① 玻璃ROI区域：RANSAC平面拟合，计算平面法向。竖直玻璃标记为vertical_glass；平放玻璃判定可通行。
-        ② 塑料袋ROI区域：计算ROI相对地面凸起高度；凸起高度≥底盘间隙标记为raised_plastic_bag，否则判定可通行。
-        ③ 其余无语义mask的非地面点云：欧式聚类提取障碍物，轮廓提取、多边形简化、重叠合并，统一类别general_obstacle。
-    > 类别优先级：语义类别优先级高于general_obstacle；同一区域若命中语义类别，不再归类为通用障碍物。
-    时序滤波：滑动窗口多帧校验，连续多帧稳定检出mask才执行规则，抑制单帧误检。
-    输出话题：/perception/fused_obstacles（ObstacleArray）
-4. obstacle_rviz_visual_node（可选调试节点）：订阅ObstacleArray，转换为MarkerArray在RViz可视化，不同类别使用不同颜色。
+| 分支 | 仿真验证 | 必须真机 |
+|---|---|---|
+| general_obstacle（聚类/多边形/评估） | ✅ 完全可验（factory1 真值免费：world 模型位姿已知） | - |
+| raised_plastic_bag 几何规则 | ✅ 用托盘/低箱替代物验几何通路 | 现象学 |
+| vertical_glass 地脚线法 | ⚠️ 仅验"mask→地脚线→多边形"管线逻辑（world 加玻璃纹理板供分割） | 透射/虚点现象必须真机 bag |
+| 净化分支 | ⚠️ 仅逻辑验证 | 镜面/积水必须真机 |
 
-## 依赖开源组件
-1. linefit_ground_segmentation_ros2：地面分割，计算地面基准、凸起高度
-2. PCL库：点云RANSAC平面拟合、欧式聚类、离群点过滤
-3. OpenCV + TF2：像素反投影、坐标变换
-4. Ramer-Douglas-Peucker算法：多边形轮廓简化；重叠多边形合并逻辑自研
+**性能预算**（端到端 ≤300ms）：分割推理 18ms(GPU)/every_n=2 约 66ms + message_filters 同步 ≤100ms + 前投影/几何/聚类 <50ms + 发布 <10ms。评估指标：general_obstacle 召回 ≥95%（仿真真值）、位置误差 ≤10cm、虚警 ≤2 个/分钟、延迟 ≤300ms。
 
-## 参数配置
-所有可调参数统一放置config/params.yaml，关键参数：底盘安全间隙、平面竖直判定角度阈值、mask置信阈值、时序滑动窗口大小、点云聚类阈值、多边形简化误差。
+## 11、实施阶段（v2 评审结论）
 
-## Launch组织
-采用分层launch文件，分别启动驱动、语义推理、点云预处理、感知核心节点、可视化节点。
+- **Phase 0**：方案冻结（本版即 v2）；确定包名 `fp_obstacle`，msg 独立小包
+- **Phase 1**：msg 包 + 点云预处理（linefit）+ general_obstacle 分支 + MarkerArray 可视化；**factory1 仿真闭环 + 真值评估脚本**
+- **Phase 2**：raised_plastic_bag 几何规则分支（仿真用托盘类替代物验证）
+- **Phase 3**：vertical_glass 地脚线法 + 净化分支（仿真验逻辑；录真机 bag 验现象）
+- **Phase 4**：ObstacleArray→costmap polygon layer 消费端；与 /fp/traversability A/B 对比，定终态
 
-## 测试方案
-1. 离线bag回放：录制图像、点云、TF，离线调参、验证场景逻辑。
-2. RViz可视化调试：查看原始点云、净化后点云、语义mask、障碍物多边形marker。
-3. 指标评估：编写Python评估脚本，订阅ObstacleArray，与真值多边形对比，分类别统计召回率、虚警率。
-
-## 工程注意事项
-1. 时间同步：使用message_filters完成图像、点云时间戳对齐；
-2. 相机-激光外参标定精度直接影响mask投影ROI准确性；
-3. 多边形后处理：增加重叠多边形合并，避免障碍物轮廓碎片化；
-4. V1范围约束：仅实现规则式融合，不引入端到端模型融合；观测净化仅处理预定义四类语义场景。
-```
+---
+*（v1 文末的重复粘贴章节已删除，内容并入上文各节）*
