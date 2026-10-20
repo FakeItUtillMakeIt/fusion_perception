@@ -97,9 +97,11 @@ class DetectNode(Node):
                 if hp.max(axis=0)[0] - hp.min(axis=0)[0] < self.min_size and \
                    hp.max(axis=0)[1] - hp.min(axis=0)[1] < self.min_size:
                     continue
-                ap = cv2.approxPolyDP(hp.reshape(-1, 1, 2).astype(np.float32), self.rdp, True).reshape(-1, 2)
-                if len(ap) < 3:
+                rect = cv2.minAreaRect(hp.astype(np.float32))
+                (cx, cy), (bw, bl), bang = rect
+                if bw < self.min_size or bl < self.min_size:
                     continue
+                box = cv2.boxPoints(rect).astype(np.float64)
                 ob = Obstacle()
                 ob.header = msg.header
                 ob.class_name = 'general_obstacle'
@@ -107,8 +109,10 @@ class DetectNode(Node):
                 ob.confidence = float(min(0.9, len(cpts) / 20.0))
                 ob.min_height = float(cpts[:, 2].min())
                 ob.max_height = float(cpts[:, 2].max())
-                ob.polygon.points = [Point32(x=float(x), y=float(y), z=0.0) for x, y in ap]
-                self.match_track(cen[:2], ob, used)
+                ob.polygon.points = [Point32(x=float(x), y=float(y), z=0.0) for x, y in box]
+                tr = self.match_track(cen[:2], ob, used)
+                tr['obb'] = (float(cx), float(cy), float(bw), float(bl), float(bang),
+                             ob.min_height, ob.max_height)
 
         for tr in self.tracks:
             if tr['id'] not in used:
@@ -130,13 +134,21 @@ class DetectNode(Node):
             mk.header = msg.header
             mk.ns = 'obstacles'
             mk.id = tr['id'] * 2
-            mk.type = Marker.LINE_STRIP
+            mk.type = Marker.LINE_LIST
             mk.action = Marker.ADD
-            mk.scale.x = 0.04
+            mk.scale.x = 0.03
             mk.color.g = 0.9
             mk.color.a = 1.0 if tr['miss'] == 0 else 0.4
-            mk.points = [Point(x=float(q.x), y=float(q.y), z=0.0)
-                         for q in list(ob.polygon.points) + [ob.polygon.points[0]]]
+            cx, cy, bw, bl, bang, z0, z1 = tr.get('obb', (0, 0, 0.1, 0.1, 0, 0, 0.5))
+            co, so = np.cos(np.radians(bang)), np.sin(np.radians(bang))
+            hw, hl = bw / 2, bl / 2
+            cs = [(-hw, -hl), (hw, -hl), (hw, hl), (-hw, hl)]
+            verts = [(cx + x * co - y * so, cy + x * so + y * co, z) for x, y in cs for z in (z0, z1)]
+            verts = {i: v for i, v in enumerate(verts)}
+            edges = [(0, 1), (1, 2), (2, 3), (3, 0), (4, 5), (5, 6), (6, 7), (7, 4),
+                     (0, 4), (1, 5), (2, 6), (3, 7)]
+            mk.points = [Point(x=verts[a][0], y=verts[a][1], z=verts[a][2])
+                         for e in edges for a in e]
             markers.markers.append(mk)
             tx = Marker()
             tx.header = msg.header
