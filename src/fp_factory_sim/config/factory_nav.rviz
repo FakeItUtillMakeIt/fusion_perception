@@ -3,6 +3,8 @@ Panels:
     Name: Displays
   - Class: rviz_common/Views
     Name: Views
+  - Class: nav2_rviz_plugins/Navigation 2
+    Name: Navigation 2
 Visualization Manager:
   Class: ""
   Displays:
@@ -81,6 +83,14 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /robot_description
       Name: RobotModel
+    - Alpha: 1
+      Class: nav2_rviz_plugins/ParticleCloud
+      Color: 0; 180; 0
+      Name: AMCL Particles
+      Topic:
+        Depth: 10
+        Reliability Policy: Reliable
+        Value: /particle_cloud
     - Class: rviz_default_plugins/TF
       Enabled: true
       Name: TF
@@ -104,6 +114,7 @@ Visualization Manager:
     - Class: rviz_default_plugins/SetGoal
       Topic:
         Value: /goal_pose
+    - Class: nav2_rviz_plugins/GoalTool
   Value: true
   Views:
     Current:
