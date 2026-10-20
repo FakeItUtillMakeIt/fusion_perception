@@ -12,6 +12,7 @@ obstacle_detect:
     cluster_eps: 0.70
     min_points: 3
     max_centroid_dist: 18.0
+    max_miss_frames: 10
     polygon_simplify_eps: 0.05
     track_match_dist: 2.0
     track_stale: 2.0

@@ -9,6 +9,7 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
+import tf2_ros
 from scipy.spatial import cKDTree, ConvexHull
 from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import connected_components
@@ -40,9 +41,13 @@ class DetectNode(Node):
 
         self.pub = self.create_publisher(ObstacleArray, '/fp_ob/obstacles', 10)
         self.pub_m = self.create_publisher(MarkerArray, '/fp_ob/markers', 10)
+        self.buf = tf2_ros.Buffer()
+        self.tfl = tf2_ros.TransformListener(self.buf, self)
+        self.world_frame = self.declare_parameter('world_frame', 'odom').value
         self.create_subscription(PointCloud2, '/fp_ob/points_non_ground', self.cb, qos_profile_sensor_data)
         self.tracks = []
         self.next_id = 1
+        self.rob = np.zeros(2)
         self.max_miss = self.declare_parameter('max_miss_frames', 5).value
         self.live_marker_ids = set()
         self.get_logger().info('obstacle_detect up (general_obstacle geometric branch, coasting on)')
@@ -57,15 +62,23 @@ class DetectNode(Node):
         return [np.where(lab == i)[0] for i in range(nc)]
 
     def match_track(self, cen, ob, used):
+        xs = [p.x for p in ob.polygon.points]
+        ys = [p.y for p in ob.polygon.points]
+        new_bb = (min(xs) - 0.5, min(ys) - 0.5, max(xs) + 0.5, max(ys) + 0.5)
         best, bd = None, self.match_dist
         for tr in self.tracks:
             if tr['id'] in used:
                 continue
+            tbb = tr.get('bb')
             dd = np.hypot(tr['ob_c'][0] - cen[0], tr['ob_c'][1] - cen[1])
-            if dd < bd:
-                best, bd = tr, dd
+            overlap = tbb is not None and not (
+                new_bb[0] > tbb[2] or new_bb[2] < tbb[0] or
+                new_bb[1] > tbb[3] or new_bb[3] < tbb[1])
+            score = dd if not overlap else min(dd, 1.5)
+            if score < bd:
+                best, bd = tr, score
         if best is None:
-            tr = {'id': self.next_id, 'ob_c': cen.copy(), 'miss': 0}
+            tr = {'id': self.next_id, 'ob_c': cen.copy(), 'miss': 0, 'bb': new_bb}
             self.next_id += 1
             self.tracks.append(tr)
             best = tr
@@ -74,6 +87,7 @@ class DetectNode(Node):
             best['miss'] = 0
             a = 0.5
             best['ob_c'] = a * best['ob_c'] + (1 - a) * cen
+            best['bb'] = new_bb
         best['ob'] = ob
         best['ob'].id = best['id']
         best['ob'].confidence = float(min(1.0, ob.confidence + 0.1))
@@ -81,6 +95,32 @@ class DetectNode(Node):
 
     def cb(self, msg):
         p = parse_xyzt(msg)
+        if not hasattr(self, '_dbg2'): self._dbg2 = 0
+        self._dbg2 += 1
+        if self._dbg2 <= 2:
+            self.get_logger().info('cb in: n=%d frame=%s wf=%s' % (len(p), msg.header.frame_id, self.world_frame))
+        try:
+            tfm = self.buf.lookup_transform(self.world_frame, msg.header.frame_id, msg.header.stamp)
+        except Exception:
+            try:
+                tfm = self.buf.lookup_transform(self.world_frame, msg.header.frame_id,
+                                                rclpy.time.Time())
+            except Exception as e:
+                if not hasattr(self, '_dbg'): self._dbg = 0
+                self._dbg += 1
+                if self._dbg in (3, 50, 200):
+                    self.get_logger().warn('tf fail #%d: %s | frames=%s' % (self._dbg, str(type(e))[:40], self.buf.all_frames_as_string().replace(chr(10),'->')[:200]))
+                return
+        q = tfm.transform.rotation
+        x, y, z, w = q.x, q.y, q.z, q.w
+        R = np.array([
+            [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+            [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+            [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]])
+        t = np.array([tfm.transform.translation.x, tfm.transform.translation.y, tfm.transform.translation.z])
+        self.rob = t[:2]
+        p = p @ R.T + t
+        msg.header.frame_id = self.world_frame
         now = self.get_clock().now().nanoseconds * 1e-9
         used = set()
         if len(p) >= self.min_pts:
@@ -89,7 +129,7 @@ class DetectNode(Node):
                 if len(cpts) < self.min_pts:
                     continue
                 cen = cpts.mean(axis=0)
-                if np.hypot(cen[0], cen[1]) > self.max_dist:
+                if np.hypot(cen[0] - self.rob[0], cen[1] - self.rob[1]) > self.max_dist:
                     continue
                 try:
                     hull = ConvexHull(cpts[:, :2])
