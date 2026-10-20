@@ -12,7 +12,7 @@ export PATH=/usr/bin:$PATH
 # 终端1  ros2 launch fp_factory_sim sim.launch.py
 # 终端2  ros2 launch fp_factory_sim ekf.launch.py
 # 终端3  ros2 launch fp_factory_sim scan.launch.py
-# 终端4  ros2 launch fp_factory_sim navigation.launch.py rviz:=true
+# 终端4  ros2 launch fp_factory_sim navigation.launch.py rviz:=true map:=$HOME/project/fusion_perception/src/fp_factory_sim/maps/factory1_map.yaml
 ```
 
 **SLAM 与 Nav2 互斥**（都发布 map→odom），切导航前先杀掉 slam。
@@ -70,6 +70,7 @@ planner=DWB/NavFn, controller=DWB, cmd_vel 直连差速插件
 | 发 goal 不动 | `ros2 topic info /cmd_vel -v` 确认 diff_drive 在订阅；lifecycle 全 active |
 | 定位跳变/镜像位姿 | 对称场地+初始 yaw 给错，重发正确 initialpose |
 | 转弯欠 9% | 4 轮 caster 物理特性，SLAM/重规划可吸收，无需处理 |
+| 导航中定位缓慢漂移 | amcl 已配 recovery_alpha_slow/fast=0.001/0.05（似然下降自动撒粒子自愈）+ update_min 0.1 + alpha 0.35；仍漂→查 EKF 是否在跑、地图是否有重影、货架周期混叠（跳 3m 整数倍→右侧货架 y 错开 1.5m 破对称） |
 
 ## 7. 下一步：语义融合导航（方案已评审通过）
 
