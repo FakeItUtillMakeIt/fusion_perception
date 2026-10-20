@@ -9,10 +9,10 @@ pointcloud_preprocess:
 
 obstacle_detect:
   ros__parameters:
-    cluster_eps: 0.45
+    cluster_eps: 0.70
     min_points: 3
     max_centroid_dist: 18.0
     polygon_simplify_eps: 0.05
-    track_match_dist: 0.6
+    track_match_dist: 2.0
     track_stale: 2.0
     min_polygon_size: 0.15
