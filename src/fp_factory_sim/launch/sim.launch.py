@@ -16,10 +16,13 @@ def generate_launch_description():
     world = LaunchConfiguration('world')
     headless = LaunchConfiguration('headless')
     rviz = LaunchConfiguration('rviz')
-    xacro_file = os.path.join(pkg, 'urdf', 'factory_robot.xacro')
+    xacro_file = LaunchConfiguration('xacro')
 
     return LaunchDescription([
         DeclareLaunchArgument('world', default_value=os.path.join(pkg, 'worlds', 'factory.world')),
+        DeclareLaunchArgument('xacro', default_value=os.path.join(pkg, 'urdf', 'factory_robot.xacro'),
+                              description='机器人 xacro 文件路径（换 factory_robot1.xacro 用新车型）'),
+        DeclareLaunchArgument('entity', default_value='factory_robot'),
         DeclareLaunchArgument('headless', default_value='true',
                               description='true=只跑 gzserver (WSL 友好); false=带 gzclient 窗口'),
         DeclareLaunchArgument('rviz', default_value='false'),
@@ -42,7 +45,7 @@ def generate_launch_description():
         Node(
             package='gazebo_ros',
             executable='spawn_entity.py',
-            arguments=['-topic', 'robot_description', '-entity', 'factory_robot',
+            arguments=['-topic', 'robot_description', '-entity', LaunchConfiguration('entity'),
                        '-x', '0', '-y', '0', '-z', '0.05'],
             output='screen',
         ),

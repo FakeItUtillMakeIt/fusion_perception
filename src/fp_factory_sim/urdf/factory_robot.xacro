@@ -272,7 +272,10 @@
       <max_wheel_torque>20.0</max_wheel_torque>
       <max_wheel_acceleration>1.5</max_wheel_acceleration>
       <publish_odom>true</publish_odom>
-      <publish_odom_tf>true</publish_odom_tf>
+      <publish_odom_tf>false</publish_odom_tf>
+      <covariance_x>0.05</covariance_x>
+      <covariance_y>0.05</covariance_y>
+      <covariance_yaw>0.02</covariance_yaw>
       <publish_wheel_tf>false</publish_wheel_tf>
       <publish_joint_state>false</publish_joint_state>
       <odometry_frame>odom</odometry_frame>

@@ -1,0 +1,205 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <world name="factory">
+    <!-- 物理引擎配置 -->
+    <physics type="ode">
+      <max_step_size>0.002</max_step_size>
+      <real_time_update_rate>500.0</real_time_update_rate>
+      <real_time_factor>1</real_time_factor>
+      <ode>
+        <solver><type>quick</type><iters>50</iters></solver>
+        <constraints>
+          <contact_max_correcting_vel>100.0</contact_max_correcting_vel>
+          <contact_surface_layer>0.001</contact_surface_layer>
+        </constraints>
+      </ode>
+    </physics>
+
+    <!-- 地面与光照 -->
+    <include><uri>model://ground_plane</uri></include>
+    <include><uri>model://sun</uri></include>
+
+    <!-- ================= 厂房外墙 ================= -->
+    <!-- 南墙 (带大门开口，由两段墙体组成) -->
+    <model name="wall_south_left">
+      <static>1</static><pose>-9 15.1 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>12 0.2 5</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>12 0.2 5</size></box></geometry>
+          <material><ambient>0.8 0.8 0.8 1</ambient><diffuse>0.8 0.8 0.8 1</diffuse></material></visual>
+      </link>
+    </model>
+    <model name="wall_south_right">
+      <static>1</static><pose>9 15.1 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>12 0.2 5</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>12 0.2 5</size></box></geometry>
+          <material><ambient>0.8 0.8 0.8 1</ambient><diffuse>0.8 0.8 0.8 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- 北墙 -->
+    <model name="wall_north">
+      <static>1</static><pose>0 -15.1 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>30.4 0.2 5</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>30.4 0.2 5</size></box></geometry>
+          <material><ambient>0.8 0.8 0.8 1</ambient><diffuse>0.8 0.8 0.8 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- 东墙 -->
+    <model name="wall_east">
+      <static>1</static><pose>15.1 0 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.2 30.4 5</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.2 30.4 5</size></box></geometry>
+          <material><ambient>0.8 0.8 0.8 1</ambient><diffuse>0.8 0.8 0.8 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- 西墙 -->
+    <model name="wall_west">
+      <static>1</static><pose>-15.1 0 2.5 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>0.2 30.4 5</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>0.2 30.4 5</size></box></geometry>
+          <material><ambient>0.8 0.8 0.8 1</ambient><diffuse>0.8 0.8 0.8 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- ================= 货架区 (左/右侧) ================= -->
+    <!-- 宏定义：一个包含 4 个托盘的货架 -->
+    <macro>
+      <macro_definition name="rack_block">
+        <param name="x">0</param>
+        <param name="y">0</param>
+        <param name="h">1.5</param> <!-- 货架高度 -->
+        <link name="link">
+          <!-- 底部金属架 -->
+          <collision name="base_c"><pose>0 0 0.1 0 0 0</pose><geometry><box><size>4.0 1.0 0.2</size></box></geometry></collision>
+          <visual name="base_v"><pose>0 0 0.1 0 0 0</pose><geometry><box><size>4.0 1.0 0.2</size></box></geometry>
+            <material><ambient>0.2 0.3 0.6 1</ambient><diffuse>0.2 0.3 0.6 1</diffuse></material></visual>
+          <!-- 顶部货物 -->
+          <collision name="cargo_c"><pose>0 0 ${h/2 + 0.1} 0 0 0</pose><geometry><box><size>3.8 0.8 ${h}</size></box></geometry></collision>
+          <visual name="cargo_v"><pose>0 0 ${h/2 + 0.1} 0 0 0</pose><geometry><box><size>3.8 0.8 ${h}</size></box></geometry>
+            <material><ambient>0.7 0.5 0.3 1</ambient><diffuse>0.7 0.5 0.3 1</diffuse></material></visual>
+        </link>
+      </macro_definition>
+    </macro>
+
+    <!-- 左侧货架排 (x=-10) -->
+    <model name="rack_left_1"><static>1</static><pose>-10 10 0 0 0 0</pose><link name="l"><visual name="v"><geometry><box><size>0.1 0.1 0.1</size></box></geometry></visual></link></model>
+    <model name="rack_left_1_real"><static>1</static><pose>-10 10 0 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>4.0 1.0 1.6</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>4.0 1.0 1.6</size></box></geometry><material><ambient>0.7 0.5 0.3 1</ambient><diffuse>0.7 0.5 0.3 1</diffuse></material></visual>
+      </link>
+    </model>
+    <!-- 为了代码简洁且不超出长度，这里用简单的巨大长条模型模拟左侧一长排货架 -->
+    <!-- 左侧：5排货架，沿y轴分布 -->
+    <model name="rack_left_1_upper"><static>1</static><pose>-10 10 0.8 0 0 0</pose>
+      <link name="link"><collision name="c"><geometry><box><size>8 1 1.6</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>8 1 1.6</size></box></geometry><material><ambient>0.7 0.5 0.3 1</ambient></material></visual></link></model>
+    <model name="rack_left_2"><static>1</static><pose>-10 7.0 0.8 0 0 0</pose>
+      <link name="link"><collision name="c"><geometry><box><size>8 1 1.6</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>8 1 1.6</size></box></geometry><material><ambient>0.7 0.5 0.3 1</ambient></material></visual></link></model>
+    <model name="rack_left_3"><static>1</static><pose>-10 4.0 0.8 0 0 0</pose>
+      <link name="link"><collision name="c"><geometry><box><size>8 1 1.6</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>8 1 1.6</size></box></geometry><material><ambient>0.7 0.5 0.3 1</ambient></material></visual></link></model>
+    <model name="rack_left_4"><static>1</static><pose>-10 1.0 0.8 0 0 0</pose>
+      <link name="link"><collision name="c"><geometry><box><size>8 1 1.6</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>8 1 1.6</size></box></geometry><material><ambient>0.7 0.5 0.3 1</ambient></material></visual></link></model>
+
+    <!-- 右侧货架排 (x=10) -->
+    <model name="rack_right_1"><static>1</static><pose>10 10 0.8 0 0 0</pose>
+      <link name="link"><collision name="c"><geometry><box><size>8 1 1.6</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>8 1 1.6</size></box></geometry><material><ambient>0.7 0.5 0.3 1</ambient></material></visual></link></model>
+    <model name="rack_right_2"><static>1</static><pose>10 7.0 0.8 0 0 0</pose>
+      <link name="link"><collision name="c"><geometry><box><size>8 1 1.6</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>8 1 1.6</size></box></geometry><material><ambient>0.7 0.5 0.3 1</ambient></material></visual></link></model>
+    <model name="rack_right_3"><static>1</static><pose>10 4.0 0.8 0 0 0</pose>
+      <link name="link"><collision name="c"><geometry><box><size>8 1 1.6</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>8 1 1.6</size></box></geometry><material><ambient>0.7 0.5 0.3 1</ambient></material></visual></link></model>
+    <model name="rack_right_4"><static>1</static><pose>10 1.0 0.8 0 0 0</pose>
+      <link name="link"><collision name="c"><geometry><box><size>8 1 1.6</size></box></geometry></collision>
+      <visual name="v"><geometry><box><size>8 1 1.6</size></box></geometry><material><ambient>0.7 0.5 0.3 1</ambient></material></visual></link></model>
+
+    <!-- ================= 底部功能区 ================= -->
+    <!-- 左下：装备区 (Office) -->
+    <model name="office_area">
+      <static>1</static><pose>-8 -10 1 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>10 6 2</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>10 6 2</size></box></geometry>
+          <material><ambient>0.9 0.9 0.9 1</ambient><diffuse>0.9 0.9 0.9 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- 右下：设备/消防区 -->
+    <model name="utility_area">
+      <static>1</static><pose>8 -10 1 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>10 6 2</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>10 6 2</size></box></geometry>
+          <material><ambient>0.9 0.9 0.9 1</ambient><diffuse>0.9 0.9 0.9 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- ================= 仿真障碍物 (检测验证用) ================= -->
+    <!-- 大机器 (放在右下方，不遮挡主通道) -->
+    <model name="machine">
+      <static>1</static><pose>7.5 -6.5 0.75 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>2.0 1.2 1.5</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>2.0 1.2 1.5</size></box></geometry>
+          <material><ambient>0.3 0.6 0.3 1</ambient><diffuse>0.3 0.6 0.3 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- 托盘 (低矮障碍) -->
+    <model name="pallet">
+      <static>1</static><pose>-6.0 -6.5 0.075 0 0 0</pose>
+      <link name="link">
+        <collision name="c"><geometry><box><size>1.2 1.0 0.15</size></box></geometry></collision>
+        <visual name="v"><geometry><box><size>1.2 1.0 0.15</size></box></geometry>
+          <material><ambient>0.7 0.5 0.2 1</ambient><diffuse>0.7 0.5 0.2 1</diffuse></material></visual>
+      </link>
+    </model>
+
+    <!-- ================= 模拟卡车与装卸位 ================= -->
+    <!-- 左侧卡车 -->
+    <model name="truck_left">
+      <static>1</static><pose>-10 12.5 1.5 0 0 0</pose>
+      <link name="link">
+        <!-- 货箱 -->
+        <collision name="c1"><pose>0 2.5 0 0 0 0</pose><geometry><box><size>2.5 6 2.5</size></box></geometry></collision>
+        <visual name="v1"><pose>0 2.5 0 0 0 0</pose><geometry><box><size>2.5 6 2.5</size></box></geometry><material><ambient>0.9 0.9 0.9 1</ambient></material></visual>
+        <!-- 驾驶室 -->
+        <collision name="c2"><pose>0 -2.5 0 0 0 0</pose><geometry><box><size>2.5 2 1.5</size></box></geometry></collision>
+        <visual name="v2"><pose>0 -2.5 0 0 0 0</pose><geometry><box><size>2.5 2 1.5</size></box></geometry><material><ambient>0.2 0.4 0.8 1</ambient></material></visual>
+      </link>
+    </model>
+
+    <!-- 右侧卡车 -->
+    <model name="truck_right">
+      <static>1</static><pose>10 12.5 1.5 0 0 0</pose>
+      <link name="link">
+        <collision name="c1"><pose>0 2.5 0 0 0 0</pose><geometry><box><size>2.5 6 2.5</size></box></geometry></collision>
+        <visual name="v1"><pose>0 2.5 0 0 0 0</pose><geometry><box><size>2.5 6 2.5</size></box></geometry><material><ambient>0.9 0.9 0.9 1</ambient></material></visual>
+        <collision name="c2"><pose>0 -2.5 0 0 0 0</pose><geometry><box><size>2.5 2 1.5</size></box></geometry></collision>
+        <visual name="v2"><pose>0 -2.5 0 0 0 0</pose><geometry><box><size>2.5 2 1.5</size></box></geometry><material><ambient>0.2 0.4 0.8 1</ambient></material></visual>
+      </link>
+    </model>
+
+    <!-- 主通道地面标识线 (仅视觉，无碰撞) -->
+    <model name="lane_markings">
+      <static>1</static><pose>0 0 0.01 0 0 0</pose>
+      <link name="link">
+        <visual name="v1"><pose>-2.5 0 0 0 0 0</pose><geometry><box><size>0.1 25 0.01</size></box></geometry><material><ambient>1 0.8 0 1</ambient></material></visual>
+        <visual name="v2"><pose>2.5 0 0 0 0 0</pose><geometry><box><size>0.1 25 0.01</size></box></geometry><material><ambient>1 0.8 0 1</ambient></material></visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

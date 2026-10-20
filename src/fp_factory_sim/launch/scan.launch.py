@@ -25,7 +25,7 @@ def p2l(name, scan_out, band):
             'angle_max': 3.1415,
             'angle_increment': 0.017453,
             'scan_time': 0.1,
-            'range_min': 0.2,
+            'range_min': 0.5,
             'range_max': 30.0,
             'use_inf': True,
             'inf_epsilon': 1.0,

@@ -10,8 +10,9 @@ cd ~/project/fusion_perception && source install/setup.bash
 export PATH=/usr/bin:$PATH
 
 # 终端1  ros2 launch fp_factory_sim sim.launch.py
-# 终端2  ros2 launch fp_factory_sim scan.launch.py
-# 终端3  ros2 launch fp_factory_sim navigation.launch.py rviz:=true
+# 终端2  ros2 launch fp_factory_sim ekf.launch.py
+# 终端3  ros2 launch fp_factory_sim scan.launch.py
+# 终端4  ros2 launch fp_factory_sim navigation.launch.py rviz:=true
 ```
 
 **SLAM 与 Nav2 互斥**（都发布 map→odom），切导航前先杀掉 slam。

@@ -13,19 +13,26 @@ export PATH=/usr/bin:$PATH        # 关键：避开 conda python（spawn_entity/
 
 **铁律**：同一时刻只能有一套仿真栈（fp_factory_sim 或 fp_gazebo），切换前清场：
 ```bash
-pkill -9 -f "ign gazebo|gzserver|robot_state_pub|pointcloud_to_l|async_slam|rviz2"
+pkill -9 -f "ign gazebo|gzserver|robot_state_pub|pointcloud_to_l|async_slam|rviz2|ekf_node"
 ```
 
-## 1. 启动（三个终端）
+## 1. 启动（四个终端）
 
 ```bash
 # 终端1：仿真（headless:=false 开 3D 窗口）
-ros2 launch fp_factory_sim sim.launch.py
+ros2 launch fp_factory_sim sim.launch.py headless:=false
+ros2 launch fp_factory_sim sim.launch.py \
+    world:=$HOME/project/fusion_perception/src/fp_factory_sim/worlds/factory1.world \
+    xacro:=$HOME/project/fusion_perception/src/fp_factory_sim/urdf/factory_robot1.xacro \
+    headless:=false
 
-# 终端2：点云->2D 切片（同时发 /scan 高位 + /scan_low 低位）
+# 终端2：EKF 融合（轮 odom + IMU -> 发布 odom→base TF；diff_drive 插件已关 odom TF）
+ros2 launch fp_factory_sim ekf.launch.py
+
+# 终端3：点云->2D 切片（同时发 /scan 高位 + /scan_low 低位）
 ros2 launch fp_factory_sim scan.launch.py
 
-# 终端3：SLAM + rviz
+# 终端4：SLAM + rviz
 ros2 launch fp_factory_sim slam.launch.py rviz:=true
 ```
 
@@ -87,3 +94,5 @@ ros2 launch fp_factory_sim slam.launch.py rviz:=true \
 | 地图不动/无 TF | 清残留进程（两套仿真互踩是头号原因） |
 | 车走不动轮子空转 | caster 间隙 3mm（不能 0 不能 >6mm）；轮子禁加 minDepth/damping |
 | 建图期 rviz 报缺轮子 TF | joint_state_publisher gazebo 插件已在 xacro 内，重启 sim 即可 |
+| 货架走廊里纵向漂移 | 走廊平行面=2D 退化，纵向无约束；已上 EKF(odom+IMU) 缓解，仍要按策略走：走中央通道、匀速直行、端点停留、原路往返触发回环 |
+| EKF 启动报 params file 错误 | ekf.yaml 的 process_noise_covariance 必须是同类型数值（全浮点） |
