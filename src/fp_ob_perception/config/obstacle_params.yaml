@@ -1,0 +1,18 @@
+pointcloud_preprocess:
+  ros__parameters:
+    max_range: 20.0
+    min_range: 0.9
+    ground_z_base: -0.075
+    ground_band: 0.12
+    max_z: 2.5
+    tf_parent: base_link
+
+obstacle_detect:
+  ros__parameters:
+    cluster_eps: 0.45
+    min_points: 3
+    max_centroid_dist: 18.0
+    polygon_simplify_eps: 0.05
+    track_match_dist: 0.6
+    track_stale: 2.0
+    min_polygon_size: 0.15

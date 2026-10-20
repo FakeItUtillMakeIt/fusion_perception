@@ -286,7 +286,7 @@ obstacle_perception_node:
 ## 11、实施阶段（v2 评审结论）
 
 - **Phase 0**：方案冻结（本版即 v2）；确定包名 `fp_obstacle`，msg 独立小包
-- **Phase 1**：msg 包 + 点云预处理（linefit）+ general_obstacle 分支 + MarkerArray 可视化；**factory1 仿真闭环 + 真值评估脚本**
+- **Phase 1** ✅（2026-10-20 完成）：`fp_ob_msgs` + `fp_ob_perception`（z 带地面分割 V1 + DBSCAN 聚类 + 凸包/RDP 多边形 + id 跟踪 + MarkerArray）；factory1 仿真真值评估：**11/11 区召回、0 虚警**。实测标定参数：eps=0.45（3线1°角分辨率远距切向点距所需）、ground_band=0.12（含地面标线）、min_range=0.9。linefit 留作斜坡升级位
 - **Phase 2**：raised_plastic_bag 几何规则分支（仿真用托盘类替代物验证）
 - **Phase 3**：vertical_glass 地脚线法 + 净化分支（仿真验逻辑；录真机 bag 验现象）
 - **Phase 4**：ObstacleArray→costmap polygon layer 消费端；与 /fp/traversability A/B 对比，定终态

@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>fp_ob_perception</name>
+  <version>0.1.0</version>
+  <description>Obstacle perception module (v2 plan): semantic+geometry fusion, ObstacleArray output; sim bringup for factory1</description>
+  <maintainer email="fusion@example.com">sevnce</maintainer>
+  <license>MIT</license>
+
+  <depend>rclpy</depend>
+  <exec_depend>fp_perception</exec_depend>
+  <exec_depend>fp_bringup</exec_depend>
+  <exec_depend>fp_common</exec_depend>
+  <exec_depend>fp_ob_msgs</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

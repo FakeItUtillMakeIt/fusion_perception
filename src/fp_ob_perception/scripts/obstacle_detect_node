@@ -1,0 +1,5 @@
+#!/usr/bin/env python3
+from fp_ob_perception.obstacle_detect import main
+
+if __name__ == "__main__":
+    main()
