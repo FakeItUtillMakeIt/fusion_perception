@@ -38,7 +38,7 @@ def generate_launch_description():
         DeclareLaunchArgument('cloud_in', default_value='/lidar/points_raw'),
         # 高位切片(雷达平面±0.05m)：给 SLAM，看墙/机器等结构
         p2l('p2l_high', '/scan', (-0.05, 0.05)),
-        # 低位切片(lidar系 z -0.75~-0.6，即绝对高度 0.05~0.2m)：
+        # 低位切片(lidar系 z -0.45~-0.30，即绝对高度 0.075~0.225m，适配 0.525m 装高)：
         # 用 -15° 线扫托盘顶面(0.15m)/线槽(0.06m)/下层箱，专供 costmap 避障
-        p2l('p2l_low', '/scan_low', (-0.75, -0.6)),
+        p2l('p2l_low', '/scan_low', (-0.45, -0.30)),
     ])

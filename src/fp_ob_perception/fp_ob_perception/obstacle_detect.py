@@ -8,7 +8,8 @@ import math
 import numpy as np
 import rclpy
 from rclpy.node import Node
-from rclpy.qos import qos_profile_sensor_data
+from rclpy.qos import qos_profile_sensor_data, QoSProfile, ReliabilityPolicy, DurabilityPolicy
+from nav_msgs.msg import OccupancyGrid
 import tf2_ros
 from scipy.spatial import cKDTree, ConvexHull
 from scipy.sparse import coo_matrix
@@ -46,6 +47,13 @@ class DetectNode(Node):
         self.tfl = tf2_ros.TransformListener(self.buf, self)
         self.world_frame = self.declare_parameter('world_frame', 'odom').value
         self.in_topic = self.declare_parameter('input_topic', '/fp_ob/points_non_ground').value
+        self.static_filter = self.declare_parameter('static_map_filter', True).value
+        self.static_frac = self.declare_parameter('static_frac_thresh', 0.6).value
+        self.occ_level = self.declare_parameter('static_occ_level', 50).value
+        self.map_msg = None
+        mq = QoSProfile(depth=1, reliability=ReliabilityPolicy.RELIABLE,
+                        durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        self.create_subscription(OccupancyGrid, '/map', lambda m: self.__setattr__('map_msg', m), mq)
         self.create_subscription(PointCloud2, self.in_topic, self.cb, qos_profile_sensor_data)
         self.tracks = []
         self.next_id = 1
@@ -53,6 +61,54 @@ class DetectNode(Node):
         self.max_miss = self.declare_parameter('max_miss_frames', 5).value
         self.live_marker_ids = set()
         self.get_logger().info('obstacle_detect up (general_obstacle geometric branch, coasting on)')
+
+    def map_tf(self, stamp):
+        try:
+            t = self.buf.lookup_transform('map', 'odom', stamp)
+        except Exception:
+            try:
+                t = self.buf.lookup_transform('map', 'odom', rclpy.time.Time())
+            except Exception:
+                return None
+        q = t.transform.rotation
+        x, y, z, w = q.x, q.y, q.z, q.w
+        R = np.array([
+            [1-2*(y*y+z*z), 2*(x*y-z*w), 2*(x*z+y*w)],
+            [2*(x*y+z*w), 1-2*(x*x+z*z), 2*(y*z-x*w)],
+            [2*(x*z-y*w), 2*(y*z+x*w), 1-2*(x*x+y*y)]])
+        return R[:2, :2], np.array([t.transform.translation.x, t.transform.translation.y])
+
+    def occ_fraction(self, pts2d, R, t):
+        m = self.map_msg
+        if m is None:
+            return 0.0
+        info = m.info
+        grid = np.array(m.data, dtype=np.int16).reshape(info.height, info.width)
+        res, ox, oy = info.resolution, info.origin.position.x, info.origin.position.y
+        mp = (R @ np.asarray(pts2d).T).T + t
+        n = len(mp)
+        samples = []
+        for i in range(n):
+            a, b = mp[i], mp[(i + 1) % n]
+            L = float(np.hypot(*(b - a)))
+            k = max(int(L / 0.1), 1)
+            for j in range(k + 1):
+                samples.append(a + (b - a) * (j / k))
+        S = np.asarray(samples)
+        px = ((S[:, 0] - ox) / res).astype(int)
+        py = ((S[:, 1] - oy) / res).astype(int)
+        valid = (px >= 0) & (px < info.width) & (py >= 0) & (py < info.height)
+        if valid.sum() < 3:
+            return 0.0
+        w = int(0.25 / res)
+        hit = 0
+        tot = 0
+        for x_, y_ in zip(px[valid], py[valid]):
+            win = grid[max(y_ - w, 0):y_ + w + 1, max(x_ - w, 0):x_ + w + 1]
+            tot += 1
+            if (win >= self.occ_level).any():
+                hit += 1
+        return hit / max(tot, 1)
 
     def cluster(self, p):
         tree = cKDTree(p[:, :2])
@@ -97,21 +153,13 @@ class DetectNode(Node):
 
     def cb(self, msg):
         p = parse_xyzt(msg)
-        if not hasattr(self, '_dbg2'): self._dbg2 = 0
-        self._dbg2 += 1
-        if self._dbg2 <= 2:
-            self.get_logger().info('cb in: n=%d frame=%s wf=%s' % (len(p), msg.header.frame_id, self.world_frame))
         try:
             tfm = self.buf.lookup_transform(self.world_frame, msg.header.frame_id, msg.header.stamp)
         except Exception:
             try:
                 tfm = self.buf.lookup_transform(self.world_frame, msg.header.frame_id,
                                                 rclpy.time.Time())
-            except Exception as e:
-                if not hasattr(self, '_dbg'): self._dbg = 0
-                self._dbg += 1
-                if self._dbg in (3, 50, 200):
-                    self.get_logger().warn('tf fail #%d: %s | frames=%s' % (self._dbg, str(type(e))[:40], self.buf.all_frames_as_string().replace(chr(10),'->')[:200]))
+            except Exception:
                 return
         q = tfm.transform.rotation
         x, y, z, w = q.x, q.y, q.z, q.w
@@ -176,8 +224,13 @@ class DetectNode(Node):
         arr.header = msg.header
         markers = MarkerArray()
         cur_ids = set()
+        mtf = self.map_tf(msg.header.stamp) if self.static_filter else None
         for tr in self.tracks:
             ob = tr['ob']
+            if mtf is not None:
+                pts2d = [[q.x, q.y] for q in ob.polygon.points]
+                if self.occ_fraction(pts2d, mtf[0], mtf[1]) > self.static_frac:
+                    continue
             arr.obstacles.append(ob)
             mk = Marker()
             mk.header = msg.header
