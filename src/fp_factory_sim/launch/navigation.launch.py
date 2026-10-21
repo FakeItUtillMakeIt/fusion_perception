@@ -31,7 +31,7 @@ def generate_launch_description():
                 'map': LaunchConfiguration('map'),
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
                 'params_file': LaunchConfiguration('params_file'),
-                'autostart': 'true',
+                'autostart': 'false',
             }.items(),
         ),
         # 导航：controller/planner/behavior/bt/waypoint/velocity_smoother
@@ -41,8 +41,27 @@ def generate_launch_description():
             launch_arguments={
                 'use_sim_time': LaunchConfiguration('use_sim_time'),
                 'params_file': LaunchConfiguration('params_file'),
-                'autostart': 'true',
+                'autostart': 'false',
             }.items(),
+        ),
+        # 统一激活管理器：放宽超时，规避 smoother/costmap 启动竞态
+        Node(
+            package='nav2_lifecycle_manager',
+            executable='lifecycle_manager',
+            name='lifecycle_manager_all',
+            output='screen',
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+                'autostart': True,
+                'attempt_timeout': 120.0,
+                'retry_timeout': 5.0,
+                'node_names': [
+                    'map_server', 'amcl',
+                    'controller_server', 'smoother_server', 'planner_server',
+                    'behavior_server', 'bt_navigator', 'waypoint_follower',
+                    'velocity_smoother',
+                ],
+            }],
         ),
         Node(
             package='rviz2',
