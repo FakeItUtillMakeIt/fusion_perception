@@ -134,19 +134,16 @@ class DetectNode(Node):
                 if np.hypot(cen[0] - self.rob[0], cen[1] - self.rob[1]) > self.max_dist:
                     continue
                 try:
-                    hull = ConvexHull(cpts[:, :2])
+                    rect = cv2.minAreaRect(cpts[:, :2].astype(np.float32))
                 except Exception:
                     continue
-                hp = cpts[hull.vertices, :2]
-                if hp.max(axis=0)[0] - hp.min(axis=0)[0] < self.min_size and \
-                   hp.max(axis=0)[1] - hp.min(axis=0)[1] < self.min_size:
-                    continue
-                rect = cv2.minAreaRect(hp.astype(np.float32))
                 (cx, cy), (bw, bl), bang = rect
-                if bw < self.min_size or bl < self.min_size:
+                if max(bw, bl) < self.min_size:
                     continue
-                if bw * bl < self.min_area:
+                if max(bw, bl) * max(min(bw, bl), 0.02) < self.min_area:
                     continue
+                bw = max(bw, 0.1)
+                bl = max(bl, 0.1)
                 hspan = float(cpts[:, 2].max() - cpts[:, 2].min())
                 if hspan < 0.12 and (bw * bl > 1.2 or max(bw, bl) > 1.5):
                     continue
