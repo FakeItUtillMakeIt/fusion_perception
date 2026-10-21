@@ -1,0 +1,98 @@
+# 障碍物感知模块（fp_ob_perception / fp_ob_ground / fp_ob_msgs）
+
+方案依据：`ROS2感知搭建方案.md`（v2）。当前进度：**Phase 1 完成**（general_obstacle 几何分支，factory1 仿真 11/11 召回 0 虚警）。
+与语义融合链路（`docs/fusion.md` 的 segformer 管线）并行存在，Phase 3 起合流。
+
+## 0. 环境准备（同建图/导航）
+
+```bash
+source /opt/ros/humble/setup.bash
+cd ~/project/fusion_perception && source install/setup.bash
+export PATH=/usr/bin:$PATH
+```
+感知推理节点（detect/preprocess/eval）跑在 conda `robot_ros2`（有 cv2/scipy/torch）：
+```bash
+source ~/miniforge3/etc/profile.d/conda.sh && conda activate robot_ros2
+```
+> 注意：非交互 shell 里 `conda activate` 前必须先 source `conda.sh`；
+> 手动 `ros2 run` 单节点时**必须带 `-p use_sim_time:=true`**（否则墙钟拒收 sim 时间戳 TF，节点静默无输出）。
+
+## 1. 启动
+
+```bash
+# 终端1~3：仿真栈（见 build_map.md）
+ros2 launch fp_factory_sim sim.launch.py world:=$PWD/src/fp_factory_sim/worlds/factory1.world \
+    xacro:=$PWD/src/fp_factory_sim/urdf/factory_robot1.xacro
+ros2 launch fp_factory_sim ekf.launch.py
+ros2 launch fp_factory_sim scan.launch.py
+
+# 终端4：感知栈（zband | patchwork 二选一）
+ros2 launch fp_ob_perception obstacle_phase1.launch.py rviz:=true
+ros2 launch fp_ob_perception obstacle_phase1.launch.py rviz:=true ground_mode:=patchwork
+```
+
+## 2. 数据流
+
+```
+/lidar/points_raw (lidar_link, 16线仿真)
+  ├─ 地面分割（两方案并行保留，接口一致）
+  │   ├─ zband:  fp_ob_perception/pointcloud_preprocess（TF→base_link，z带+距离过滤）
+  │   │            -> /fp_ob/points_non_ground          ✅ 默认，11/11 0FP
+  │   └─ patchwork: fp_ob_ground/patchwork_ground_node（C++，vendor Patchwork++ v1.4.1）
+  │            -> /fp_ob/points_non_ground_pw           8/12 1FP（低装16线不适配，见§5）
+  └─ obstacle_detect（输入话题可选，输出统一）
+       聚类(eps 0.7) → OBB(minAreaRect) → 12棱线框+实心长方体
+       odom系跟踪(AABB+质心混合关联, coasting 10帧) → /fp_ob/obstacles (ObstacleArray)
+                                                    → /fp_ob/markers  (rviz)
+```
+
+消息（`fp_ob_msgs/Obstacle`）：`polygon`(OBB 4顶点, **odom系**) + `min/max_height`(点云真实高度) +
+`class_name/confidence/id/source`。
+
+## 3. 评估
+
+```bash
+# 机器人放回出生点(0,0)再测，否则 GT 区对比失真（血泪教训：挪车后左右货架"不对称漏检"是假象）
+ros2 run fp_ob_perception eval_obstacles --duration 18
+# 输出：12 个真值区（8货架+office/utility/machine/pallet）召回 + 虚警列表
+```
+实测基线（zband，16线，原点）：**11/11 区检出、0 虚警**；pallet 按设计不检出（3/16 线低盲区，留给感知补盲叙事）。
+
+## 4. 关键参数（config/obstacle_params.yaml，全部实测标定）
+
+| 参数 | 值 | 为什么 |
+|---|---|---|
+| `ground_band` | 0.12 | 地面标线凸起 ~10cm，0.04/0.09 出幽灵框 |
+| `min_range` | 2.0 | 车体近场自反射/轮区噪声；安全由 footprint+inflation 兜底 |
+| `cluster_eps` | 0.70 | 16线 1° 角分辨率在 10m+ 掠射货架长面切向点距 ~0.3m，0.15/0.45 碎簇→闪烁 |
+| `max_obb_extent` | 10.0 | 墙在角部连通成 31m 巨簇；墙体归 SLAM 静态层，感知只管物体级 |
+| `track_match_dist` | 2.0 | 大货架视角变化质心跳动，配合 AABB 重叠混合关联 |
+| `max_miss_frames` | 10 | coasting ~1.3s：障碍快进慢出，框不闪灭（半透明=coasting 中） |
+
+## 5. 地面分割 A/B 结论（2026-10-21，factory1 原点公平对比）
+
+| 方案 | 召回 | 虚警 | 结论 |
+|---|---|---|---|
+| zband | 11/11 | 0 | **默认**。低装 16 线场景最优 |
+| Patchwork++（th 0.05/TGR off/RVPF on） | 8/12 | 1 | 保留为选项。其 CZM/GLE 需每环带地面样本：16线@0.525m 地面环仅 2.3~10m，外圈货架立面被吃进地面。≥32 线或 ≥1m 装高平台再启用 |
+
+调参记录：TGR 自适应 `sensor_height` 室内漂移；RVPF 关闭更差(5/12)；`adaptive_seed_selection_margin` 随高度缩放无需改。
+
+## 6. 已知问题 / 下一步
+
+1. 碎片化：大平面切多条 → 多边形合并（Phase 2 计划内）
+2. 薄板框（h 跨度 <0.08 的地面残留）→ 加高度跨度过滤
+3. 移动中 id 仍有少量换号（EKF 抖动+视角变化）→ 跟踪加恒速模型
+4. Phase 2：`raised_plastic_bag` 几何规则分支（低凸起+法向杂乱）
+5. Phase 3：`vertical_glass` 地脚线法 + 净化分支（与 segformer 语义合流，见方案 §9）
+6. Phase 4：`/fp_ob/obstacles` → costmap polygon layer，与 `/fp/traversability` A/B
+
+## 7. 排障速查
+
+| 现象 | 原因 |
+|---|---|
+| detect 零输出无报错 | use_sim_time 没开（手动 ros2 run 时）；或 TF 断（sim/ekf 没起） |
+| 启动后前几秒 tf fail | DDS 发现期，正常，自动恢复 |
+| 框横穿场景的斜线 | 线框顶点序 bug 已修；若复现查 marker ns/id 冲突 |
+| 评估大面积漏检 | 先 `ros2 topic echo /odom --once` 确认机器人还在出生点 |
+| 远处大平面碎条/消失 | cluster_eps 与角分辨率几何关系，见 §4 |
