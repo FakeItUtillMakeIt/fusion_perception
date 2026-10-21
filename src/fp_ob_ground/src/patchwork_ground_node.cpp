@@ -20,20 +20,33 @@ using sensor_msgs::msg::PointField;
 
 namespace {
 
-std::vector<Eigen::Vector3f> parse_cloud(const PointCloud2 &m) {
+struct ParsedCloud {
+  std::vector<Eigen::Vector3f> pts;
+  std::vector<float> inten;
+  bool has_int{false};
+};
+
+ParsedCloud parse_cloud(const PointCloud2 &m) {
   std::unordered_map<std::string, uint32_t> off;
   for (const auto &f : m.fields) off[f.name] = f.offset;
-  if (!off.count("x") || !off.count("y") || !off.count("z")) return {};
-  std::vector<Eigen::Vector3f> pts;
-  pts.reserve(m.width * m.height);
+  ParsedCloud out;
+  if (!off.count("x") || !off.count("y") || !off.count("z")) return out;
+  out.has_int = off.count("intensity") > 0;
+  out.pts.reserve(m.width * m.height);
   for (uint32_t i = 0; i < m.width * m.height; ++i) {
     const uint8_t *p = m.data.data() + size_t(i) * m.point_step;
     Eigen::Vector3f v(*reinterpret_cast<const float *>(p + off["x"]),
                       *reinterpret_cast<const float *>(p + off["y"]),
                       *reinterpret_cast<const float *>(p + off["z"]));
-    if (std::isfinite(v.x()) && std::isfinite(v.y()) && std::isfinite(v.z())) pts.push_back(v);
+    if (!std::isfinite(v.x()) || !std::isfinite(v.y()) || !std::isfinite(v.z())) continue;
+    out.pts.push_back(v);
+    if (out.has_int) {
+      uint16_t raw;
+      std::memcpy(&raw, p + off["intensity"], 2);
+      out.inten.push_back(static_cast<float>(raw));
+    }
   }
-  return pts;
+  return out;
 }
 
 PointCloud2 make_cloud(const std_msgs::msg::Header &hdr, const std::vector<Eigen::Vector3f> &pts) {
@@ -88,6 +101,7 @@ class PatchworkGroundNode : public rclcpp::Node {
     patchwork::Params params;
     params.verbose = false;
     params.enable_TGR = declare_parameter<bool>("enable_TGR", true);
+    params.enable_RNR = declare_parameter<bool>("enable_RNR", false);
     params.enable_RVPF = declare_parameter<bool>("enable_RVPF", true);
     params.sensor_height = sensor_height_;
     params.min_range = min_range_;
@@ -113,10 +127,14 @@ class PatchworkGroundNode : public rclcpp::Node {
 
  private:
   void cb(const PointCloud2::SharedPtr msg) {
-    auto pts = parse_cloud(*msg);
+    auto parsed = parse_cloud(*msg);
+    auto &pts = parsed.pts;
     if (pts.size() < 50) return;
-    Eigen::MatrixXf cloud(pts.size(), 3);
-    for (size_t i = 0; i < pts.size(); ++i) cloud.row(i) = pts[i];
+    Eigen::MatrixXf cloud(pts.size(), parsed.has_int ? 4 : 3);
+    for (size_t i = 0; i < pts.size(); ++i) {
+      cloud.row(i).head<3>() = pts[i];
+      if (parsed.has_int) cloud(i, 3) = parsed.inten[i];
+    }
 
     auto t0 = now();
     pw_->estimateGround(cloud);

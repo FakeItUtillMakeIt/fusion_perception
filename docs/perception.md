@@ -95,4 +95,5 @@ ros2 run fp_ob_perception eval_obstacles --duration 18
 | 启动后前几秒 tf fail | DDS 发现期，正常，自动恢复 |
 | 框横穿场景的斜线 | 线框顶点序 bug 已修；若复现查 marker ns/id 冲突 |
 | 评估大面积漏检 | 先 `ros2 topic echo /odom --once` 确认机器人还在出生点 |
+| patchwork 刷 "RNR requires intensity" | RNR 需强度列；已默认关（`enable_RNR:=false`）。真机 Hesai 带 intensity 时可开 |
 | 远处大平面碎条/消失 | cluster_eps 与角分辨率几何关系，见 §4 |
