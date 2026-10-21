@@ -56,7 +56,7 @@ ros2 launch fp_ob_perception obstacle_phase1.launch.py rviz:=true ground_mode:=p
 ros2 run fp_ob_perception eval_obstacles --duration 18
 # 输出：12 个真值区（8货架+office/utility/machine/pallet）召回 + 虚警列表
 ```
-实测基线（zband，16线，原点）：**11/11 区检出、0 虚警**；pallet 按设计不检出（3/16 线低盲区，留给感知补盲叙事）。
+实测基线（zband，16 线，原点）：**12/12 区检出、1 虚警**（-4.1,-0.1 货架腿离散簇）；pallet 按设计不检出。
 
 ## 4. 关键参数（config/obstacle_params.yaml，全部实测标定）
 
@@ -71,10 +71,10 @@ ros2 run fp_ob_perception eval_obstacles --duration 18
 
 ## 5. 地面分割 A/B 结论（2026-10-21，factory1 原点公平对比）
 
-| 方案 | 召回 | 虚警 | 结论 |
+| 方案 | 3线(旧) | 16线(现, factory_robot1 已合入) | 结论 |
 |---|---|---|---|
-| zband | 11/11 | 0 | **默认**。低装 16 线场景最优 |
-| Patchwork++（th 0.05/TGR off/RVPF on） | 8/12 | 1 | 保留为选项。其 CZM/GLE 需每环带地面样本：16线@0.525m 地面环仅 2.3~10m，外圈货架立面被吃进地面。≥32 线或 ≥1m 装高平台再启用 |
+| zband | 11/11, 0FP | **12/12, 1FP** | **默认**。低装场景实测最优 |
+| Patchwork++（th 0.05/TGR off/RVPF on） | 8/12, 1FP | 11/12, **8FP**（通道地面波纹误判） | 保留为选项。低装+少线时 CZM/GLE 地面模型不稳：3线外圈无地面样本→漏；16线阈值漂移→虚警。≥32 线或 ≥1m 装高平台再启用 |
 
 调参记录：TGR 自适应 `sensor_height` 室内漂移；RVPF 关闭更差(5/12)；`adaptive_seed_selection_margin` 随高度缩放无需改。
 
