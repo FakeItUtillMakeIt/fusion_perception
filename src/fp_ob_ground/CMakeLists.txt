@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.16)
+project(fp_ob_ground)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release)
+endif()
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(Eigen3 REQUIRED)
+add_executable(patchwork_ground_node
+  src/patchwork_ground_node.cpp
+  vendor/patchworkpp.cpp)
+target_include_directories(patchwork_ground_node PRIVATE
+  vendor/include ${EIGEN3_INCLUDE_DIR})
+target_compile_options(patchwork_ground_node PRIVATE -O2)
+ament_target_dependencies(patchwork_ground_node rclcpp sensor_msgs geometry_msgs tf2_ros)
+install(TARGETS patchwork_ground_node DESTINATION lib/${PROJECT_NAME})
+install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
+ament_package()

@@ -44,7 +44,8 @@ class DetectNode(Node):
         self.buf = tf2_ros.Buffer()
         self.tfl = tf2_ros.TransformListener(self.buf, self)
         self.world_frame = self.declare_parameter('world_frame', 'odom').value
-        self.create_subscription(PointCloud2, '/fp_ob/points_non_ground', self.cb, qos_profile_sensor_data)
+        self.in_topic = self.declare_parameter('input_topic', '/fp_ob/points_non_ground').value
+        self.create_subscription(PointCloud2, self.in_topic, self.cb, qos_profile_sensor_data)
         self.tracks = []
         self.next_id = 1
         self.rob = np.zeros(2)

@@ -194,7 +194,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 
 ## 4、关键算法模块与开源组件复用
 
-1. 地面分割：`linefit_ground_segmentation_ros2`，Gitee/GitHub有ROS2移植版本，直接复用，用于地面提取、高度计算
+1. 地面分割：**已实现双方案 A/B（`ground_mode:=zband|patchwork`）**。实测结论（factory1，16线@0.525m低装，原点）：
+   - z带法（fp_ob_perception/pointcloud_preprocess）：**11/11 检出、0 虚警** ✅ 默认
+   - Patchwork++（fp_ob_ground，vendor url-kaist v1.4.1，C++）：8/12、1 虚警——其 CZM/GLE 为 32/64线×1.7m车顶装设计，16线低装时地面环仅存于 2.3~10m、外圈无地面样本，部分货架立面被 GLE 吃成地面；调参（th 0.05/TGR off/RVPF off）均无法反超
+   - **决策：低装 16 线场景保留 z 带法为默认；Patchwork++ 留作高装/多线（≥32线或 ≥1m 装高）场景选项**
 2. 点云平面拟合：PCL `PlaneModelCoefficients` + RANSAC，用来求平面法向、平面高度（玻璃姿态判断）
 3. 欧式聚类：PCL EuclideanClusterExtraction，普通障碍物点簇聚类
 4. 点云转2D轮廓、多边形简化：PCL提取凸包/凹包 + vtk或者自定义Ramer-Douglas-Peucker多边形简化算法，合并重叠多边形
