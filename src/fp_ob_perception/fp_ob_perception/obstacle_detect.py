@@ -144,6 +144,10 @@ class DetectNode(Node):
                 (cx, cy), (bw, bl), bang = rect
                 if bw < self.min_size or bl < self.min_size:
                     continue
+                hspan = float(cpts[:, 2].max() - cpts[:, 2].min())
+                if hspan < 0.08 and (bw * bl > 1.2 or max(bw, bl) > 2.5):
+                    continue
+
                 if bw > self.max_extent or bl > self.max_extent:
                     continue
                 box = cv2.boxPoints(rect).astype(np.float64)

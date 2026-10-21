@@ -3,7 +3,7 @@ pointcloud_preprocess:
     max_range: 20.0
     min_range: 2.0
     ground_z_base: -0.075
-    ground_band: 0.12
+    ground_band: 0.13
     max_z: 2.5
     tf_parent: base_link
 

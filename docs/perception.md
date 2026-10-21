@@ -56,13 +56,13 @@ ros2 launch fp_ob_perception obstacle_phase1.launch.py rviz:=true ground_mode:=p
 ros2 run fp_ob_perception eval_obstacles --duration 18
 # 输出：12 个真值区（8货架+office/utility/machine/pallet）召回 + 虚警列表
 ```
-实测基线（zband，16 线，原点）：**12/12 区检出、1 虚警**（-4.1,-0.1 货架腿离散簇）；pallet 按设计不检出。
+实测基线（zband，16 线，原点）：**10/12 区检出、0 虚警**（rackR4/office 因簇分裂/合并漏检，Phase 2 多边形规整解决）；pallet 按设计不检出。新增过滤：薄板条（hspan<0.08 且 面积>1.2 或 最长边>2.5m）。
 
 ## 4. 关键参数（config/obstacle_params.yaml，全部实测标定）
 
 | 参数 | 值 | 为什么 |
 |---|---|---|
-| `ground_band` | 0.12 | 地面标线凸起 ~10cm，0.04/0.09 出幽灵框 |
+| `ground_band` | 0.13 | 通道内 ~12cm 高薄板杂点（-5°/-7° 线掠射带）0.12 时成弧带+桥接巨簇，0.13 归入地面；pallet 顶 +0.075 仍有 2cm 余量 |
 | `min_range` | 2.0 | 车体近场自反射/轮区噪声；安全由 footprint+inflation 兜底 |
 | `cluster_eps` | 0.70 | 16线 1° 角分辨率在 10m+ 掠射货架长面切向点距 ~0.3m，0.15/0.45 碎簇→闪烁 |
 | `max_obb_extent` | 10.0 | 墙在角部连通成 31m 巨簇；墙体归 SLAM 静态层，感知只管物体级 |
