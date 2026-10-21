@@ -56,7 +56,7 @@ ros2 launch fp_ob_perception obstacle_phase1.launch.py rviz:=true ground_mode:=p
 ros2 run fp_ob_perception eval_obstacles --duration 18
 # 输出：12 个真值区（8货架+office/utility/machine/pallet）召回 + 虚警列表
 ```
-实测基线（zband，16 线，原点）：**10/12 区检出、0 虚警**（rackR4/office 因簇分裂/合并漏检，Phase 2 多边形规整解决）；pallet 按设计不检出。新增过滤：薄板条（hspan<0.08 且 面积>1.2 或 最长边>2.5m）。
+实测基线（zband，16 线，原点）：**11/12 区检出、0 虚警**（office 与 utility/machine 邻接合并簇待 Phase 2 规整；墙沿并入货架属问题1，待地图过滤）。新增过滤：①薄板条 hspan<0.12 且(面积>1.2 或最长边>1.5)——清除低仰角掠射弧带（r5.9~7m、离地12~22cm 的 -3°/-5° 线伪影）；②min_points 6 + min_obb_area 0.06——清除孤立红点。
 
 ## 4. 关键参数（config/obstacle_params.yaml，全部实测标定）
 

@@ -38,6 +38,7 @@ class DetectNode(Node):
         self.stale = d('track_stale', 2.0).value
         self.min_size = d('min_polygon_size', 0.15).value
         self.max_extent = d('max_obb_extent', 10.0).value
+        self.min_area = d('min_obb_area', 0.06).value
 
         self.pub = self.create_publisher(ObstacleArray, '/fp_ob/obstacles', 10)
         self.pub_m = self.create_publisher(MarkerArray, '/fp_ob/markers', 10)
@@ -144,8 +145,10 @@ class DetectNode(Node):
                 (cx, cy), (bw, bl), bang = rect
                 if bw < self.min_size or bl < self.min_size:
                     continue
+                if bw * bl < self.min_area:
+                    continue
                 hspan = float(cpts[:, 2].max() - cpts[:, 2].min())
-                if hspan < 0.08 and (bw * bl > 1.2 or max(bw, bl) > 2.5):
+                if hspan < 0.12 and (bw * bl > 1.2 or max(bw, bl) > 1.5):
                     continue
 
                 if bw > self.max_extent or bl > self.max_extent:
