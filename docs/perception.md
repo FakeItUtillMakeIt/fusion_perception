@@ -78,6 +78,15 @@ ros2 run fp_ob_perception eval_obstacles --duration 18
 
 调参记录：TGR 自适应 `sensor_height` 室内漂移；RVPF 关闭更差(5/12)；`adaptive_seed_selection_margin` 随高度缩放无需改。
 
+## 5b. 地图静态过滤（已上线，问题①关闭）
+
+- 原理：障碍簇点（odom 系）→ TF → map 系，逐点查 `/map` 占据格（±0.25m 容差）；占据占比 > `static_frac_thresh`(0.6) 判静态结构丢弃
+- 关键教训：必须用**原始簇点**采样——多边形边缘一半落在物体内部（地图里是 free），占比永远差一步
+- 实测：开过滤 0 框（墙/货架/truck 全滤掉）；投放 0.5m 小箱到 (0,4) → 唯一存活框 (0.3,3.8) ✓
+- 检测下限提示：0.4m 高小箱在 7m 处只有 2-3 个点（2° 垂直分辨率），过 ~5m 小目标不可见属物理极限
+- 参数：`static_map_filter`（启动时读取，改后需重启 detect）、`static_frac_thresh`、`static_occ_level`
+- ⚠️ 全终端必须 `export FASTDDS_BUILTIN_TRANSPORT=UDPv4`（已写入 ~/.bashrc）——WSL2 上 FastDDS 共享内存损坏会丢服务响应/TF，症状：lifecycle "Transitioning failed"、amcl 激活超时、节点收不到 /map
+
 ## 6. 已知问题 / 下一步
 
 1. 碎片化：大平面切多条 → 多边形合并（Phase 2 计划内）

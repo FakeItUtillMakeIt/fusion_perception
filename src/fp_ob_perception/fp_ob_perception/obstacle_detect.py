@@ -85,16 +85,7 @@ class DetectNode(Node):
         info = m.info
         grid = np.array(m.data, dtype=np.int16).reshape(info.height, info.width)
         res, ox, oy = info.resolution, info.origin.position.x, info.origin.position.y
-        mp = (R @ np.asarray(pts2d).T).T + t
-        n = len(mp)
-        samples = []
-        for i in range(n):
-            a, b = mp[i], mp[(i + 1) % n]
-            L = float(np.hypot(*(b - a)))
-            k = max(int(L / 0.1), 1)
-            for j in range(k + 1):
-                samples.append(a + (b - a) * (j / k))
-        S = np.asarray(samples)
+        S = (R @ np.asarray(pts2d).T).T + t
         px = ((S[:, 0] - ox) / res).astype(int)
         py = ((S[:, 1] - oy) / res).astype(int)
         valid = (px >= 0) & (px < info.width) & (py >= 0) & (py < info.height)
@@ -210,6 +201,7 @@ class DetectNode(Node):
                 tr = self.match_track(cen[:2], ob, used)
                 tr['obb'] = (float(cx), float(cy), float(bw), float(bl), float(bang),
                              ob.min_height, ob.max_height)
+                tr['pts'] = cpts[:, :2].copy()
 
         for tr in self.tracks:
             if tr['id'] not in used:
@@ -225,11 +217,17 @@ class DetectNode(Node):
         markers = MarkerArray()
         cur_ids = set()
         mtf = self.map_tf(msg.header.stamp) if self.static_filter else None
+        if self.static_filter and not hasattr(self, '_sf_logged'):
+            self._sf_logged = True
+            self.get_logger().info('static-filter check: map_msg=%s mtf=%s thresh=%.2f' % (
+                self.map_msg is not None, mtf is not None, self.static_frac))
         for tr in self.tracks:
             ob = tr['ob']
             if mtf is not None:
-                pts2d = [[q.x, q.y] for q in ob.polygon.points]
-                if self.occ_fraction(pts2d, mtf[0], mtf[1]) > self.static_frac:
+                src = tr.get('pts')
+                if src is None or len(src) < 3:
+                    src = np.array([[q.x, q.y] for q in ob.polygon.points])
+                if self.occ_fraction(src, mtf[0], mtf[1]) > self.static_frac:
                     continue
             arr.obstacles.append(ob)
             mk = Marker()
