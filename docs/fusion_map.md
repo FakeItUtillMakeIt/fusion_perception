@@ -36,8 +36,10 @@ ros2 launch fp_factory_sim navigation.launch.py map:=$PWD/src/fp_factory_sim/map
 ros2 launch fp_ob_perception obstacle_phase1.launch.py rviz:=true
 ```
 
-rviz 里可勾选 **Static Map**（/map，Transient Local QoS）查看静态地图底图——
-需要 amcl 在跑（提供 map→odom TF），否则地图不显示（Fixed Frame=odom）。
+rviz 里可勾选 **Static Map**（/map，Transient Local QoS）查看静态地图底图。
+**Fixed Frame 必须设为 `map`**：latched 地图的时间戳停在 map_server 启动瞬间，
+rviz 的 TF 过滤器在 odom 系下查不到那么旧的 map→odom 会永久丢弃该消息
+（现象：控制台刷 "Message Filter dropping message: frame 'map' ... earlier than all data"）。
 
 ## 静态过滤验证（已通过，复测照做）
 
