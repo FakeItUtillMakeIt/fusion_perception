@@ -56,8 +56,13 @@ def generate_launch_description():
         ),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
-                os.path.join(get_package_share_directory('fp_ob_perception'), 'launch', 'factory1_check.launch.py')),
-            launch_arguments={'rviz': 'false'}.items(),
+                os.path.join(get_package_share_directory('fp_bringup'), 'launch', 'fusion.launch.py')),
+            launch_arguments={
+                'lidar_topic': LaunchConfiguration('lidar_topic'),
+                'image_topic': '/camera/image_raw',
+                'calib': os.path.join(pkg, 'config', 'sim_truth_robot1.yaml'),
+                'policy': os.path.join(get_package_share_directory('fp_bringup'), 'config', 'policy.yaml'),
+            }.items(),
             condition=IfCondition(LaunchConfiguration('semantics')),
         ),
         Node(
