@@ -33,13 +33,14 @@ Visualization Manager:
       Depth: 5
       Reliability Policy: Best Effort
       Value: /fp/sem_vis
+    Enabled: true
   - Class: rviz_default_plugins/Image
     Name: Overlay
     Topic:
       Depth: 5
       Reliability Policy: Best Effort
       Value: /fp/overlay
-    Enabled: false
+    Enabled: true
   - Alpha: 1
     Autocompute Intensity Bounds: false
     Class: rviz_default_plugins/PointCloud2

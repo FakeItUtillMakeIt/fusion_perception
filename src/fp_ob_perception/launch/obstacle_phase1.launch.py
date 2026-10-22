@@ -19,6 +19,8 @@ def generate_launch_description():
         DeclareLaunchArgument('rviz', default_value='false'),
         DeclareLaunchArgument('ground_mode', default_value='zband',
                               description='zband=原z带法(保留) | patchwork=Patchwork++地面分割'),
+        DeclareLaunchArgument('semantics', default_value='false',
+                              description='true=同时启动 segformer+打标+overlay 语义管线'),
         Node(
             package='fp_ob_perception',
             executable='pointcloud_preprocess_node',
@@ -50,6 +52,12 @@ def generate_launch_description():
                                  'input_topic': PythonExpression([
                                      "'/fp_ob/points_non_ground_pw' if '", ground_mode,
                                      "' == 'patchwork' else '/fp_ob/points_non_ground'"])}],
+        ),
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(get_package_share_directory('fp_ob_perception'), 'launch', 'factory1_check.launch.py')),
+            launch_arguments={'rviz': 'false'}.items(),
+            condition=IfCondition(LaunchConfiguration('semantics')),
         ),
         Node(
             package='rviz2',
