@@ -70,6 +70,26 @@ ros2 run fp_sim image_publisher --path /path/to/照片.jpg      # 或 .mp4
 ros2 run fp_perception segformer_node --ros-args -p policy_path:=src/fp_bringup/config/policy.yaml
 ```
 
+## 玻璃测试模型（Gazebo Classic 关键结论）
+
+**Gazebo 11 的 CPU ray 传感器基于 collision 几何投射**（`laser_retro` 挂在 collision 上即证据），
+`<transparency>` 只影响渲染、对激光完全无效。实测：
+
+| 玻璃面板配置 | 激光 | 相机 | 结论 |
+|---|---|---|---|
+| visual+collision（原始 window 模型） | ❌ 打中 | ✅ | 不能模拟玻璃 |
+| collision-only | ❌ 打中（33点） | 看不到 | 反例 |
+| **visual-only（无 collision）** | ✅ **穿透（0点）** | ✅ | **正确配方** |
+
+已按此生成 `/home/sevnce/model_editor_models/window/model_lidar_passthru.sdf`：
+玻璃=纯 visual（SkyBlue+transparency 0.7），底框/边柱=visual+collision（激光可见、挡车）。
+spawn 用 `-Y 1.5708` 横置，位置自定。代价：机器人物理上可穿过玻璃面（由框柱部分阻挡）。
+
+```bash
+ros2 run gazebo_ros spawn_entity.py -entity win_pt -x -4 -y 8 -z 0 -Y 1.5708 \
+    -file /home/sevnce/model_editor_models/window/model_lidar_passthru.sdf
+```
+
 ## 相关文档
 
 - 建图操作：docs/build_map.md
