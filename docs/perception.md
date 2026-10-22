@@ -15,7 +15,8 @@ export PATH=/usr/bin:$PATH
 source ~/miniforge3/etc/profile.d/conda.sh && conda activate robot_ros2
 ```
 > 注意：非交互 shell 里 `conda activate` 前必须先 source `conda.sh`；
-> 手动 `ros2 run` 单节点时**必须带 `-p use_sim_time:=true`**（否则墙钟拒收 sim 时间戳 TF，节点静默无输出）。
+> 手动 `ros2 run` 单节点时**必须带 `-p use_sim_time:=true`**（否则墙钟拒收 sim 时间戳 TF，节点静默无输出）；
+> **conda 终端严禁 `export PATH=/usr/bin:$PATH`**——会把 conda activate 顶掉，节点用系统 python 崩在 import torch。该 export 只用于不开 conda 的终端（sim/ekf/scan/navigation，为避开 pytorch_yolo 3.11 的 rclpy 不兼容）。
 
 ## 1. 启动
 
