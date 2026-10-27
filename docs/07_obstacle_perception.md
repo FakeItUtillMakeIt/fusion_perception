@@ -1,6 +1,6 @@
 # 障碍物感知模块（fp_ob_perception / fp_ob_ground / fp_ob_msgs）
 
-方案依据：`ROS2感知搭建方案.md`（v2）。当前进度：**Phase 1 完成**（general_obstacle 几何分支，factory1 仿真 11/11 召回 0 虚警）。
+方案依据：`docs/03_plan_v2_pipeline.md`（v2）。当前进度：**Phase 1 完成**（general_obstacle 几何分支，factory1 仿真 11/11 召回 0 虚警）。
 与语义融合链路（`docs/fusion.md` 的 segformer 管线）并行存在，Phase 3 起合流。
 
 ## 0. 环境准备（同建图/导航）
@@ -21,7 +21,7 @@ source ~/miniforge3/etc/profile.d/conda.sh && conda activate robot_ros2
 ## 1. 启动
 
 ```bash
-# 终端1~3：仿真栈（见 build_map.md）
+# 终端1~3：仿真栈（见 05_slam_mapping.md）
 ros2 launch fp_factory_sim sim.launch.py world:=$PWD/src/fp_factory_sim/worlds/factory1.world \
     xacro:=$PWD/src/fp_factory_sim/urdf/factory_robot1.xacro
 ros2 launch fp_factory_sim ekf.launch.py

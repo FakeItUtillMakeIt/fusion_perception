@@ -114,4 +114,4 @@ ros2 launch fp_factory_sim slam.launch.py rviz:=true \
 
 ## 8. 建图完成后
 
-导航启动方法见 `docs/nav.md`（注意启动顺序同样要加 ekf.launch.py）。
+导航启动方法见 `docs/06_navigation.md`（注意启动顺序同样要加 ekf.launch.py）。

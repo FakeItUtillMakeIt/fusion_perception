@@ -58,7 +58,7 @@ RGB 分支：语义分割采用segformer b2
       （0/50/65/90/98），仿真验证墙线正确落在 x=4m、10Hz 输出
 - [x] **Gazebo 工厂仿真 + SLAM + Nav2 闭环**（fp_factory_sim 包）：差速底盘+3D LiDAR+相机+IMU，
       factory.world(30×30+4 障碍)，pointcloud_to_laserscan→slam_toolbox 建图（墙单线无鬼影），
-      map_saver→nav2(map_server+amcl+DWB) 导航 SUCCEEDED；详见 todo.md 十二/十三节
+      map_saver→nav2(map_server+amcl+DWB) 导航 SUCCEEDED；详见 docs/01_design_v1.md 十二/十三节
 - [ ] 真实相机 + Hesai 驱动接入，真机标定 + 同步录 bag 回放验证
 - [ ] policy.yaml 按实际失败场景调优，/fp/filtered_points 接 costmap A/B
 - [ ] 二期：透明/玻璃否决通道（LiDAR 无回波 + 图像语义交叉验证）、RGB-D 近场补盲

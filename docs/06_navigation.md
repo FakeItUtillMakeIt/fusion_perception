@@ -70,7 +70,7 @@ planner=DWB/NavFn, controller=DWB, cmd_vel 直连差速插件
 
 | 现象 | 原因/解决 |
 |---|---|
-| costmap 报 "frame odom/map does not exist" | 仿真没跑/残留进程打架：清场重启（见 build_map.md §0） |
+| costmap 报 "frame odom/map does not exist" | 仿真没跑/残留进程打架：清场重启（见 05_slam_mapping.md §0） |
 | lifecycle 激活失败（Failed to change state） | 启动竞态，重启 navigation.launch.py 一次即好 |
 | amcl 报 "cannot publish a pose" | 缺 `set_initial_pose: True`（已修）；或手动发 initialpose |
 | 发 goal 不动 | `ros2 topic info /cmd_vel -v` 确认 diff_drive 在订阅；lifecycle 全 active |
@@ -82,4 +82,4 @@ planner=DWB/NavFn, controller=DWB, cmd_vel 直连差速插件
 
 - 阶段一：`fusion.launch.py` 输出 `/fp/filtered_points` 作为 costmap 第三观测源（二值避障）
 - 阶段二：`/fp/traversability` 四级代价经 costmap Layer 插件叠加（软/硬/透明分级）
-- 标定对接见 calib.md；执行细节待实施后补充本文档。
+- 标定对接见 04_calibration.md；执行细节待实施后补充本文档。

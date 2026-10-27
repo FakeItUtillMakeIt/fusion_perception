@@ -7,10 +7,10 @@
 | Gazebo 工厂仿真（factory1 + 17 线雷达 4 轮车） | ✅ | sim→ekf→scan→navigation 四 launch |
 | SLAM 建图 + 地图保存 | ✅ | `maps/factory1_map.{pgm,yaml}`，世界系对齐 |
 | Nav2 定位导航 | ✅ | amcl 自动初始化（出生点 (0,0,0)） |
-| 障碍物几何检测（OBB 长方体 + odom 跟踪 + coasting） | ✅ | 详见 perception.md |
+| 障碍物几何检测（OBB 长方体 + odom 跟踪 + coasting） | ✅ | 详见 07_obstacle_perception.md |
 | **地图静态过滤（问题①）** | ✅ **已验证** | 开过滤 0 框；(0,4) 投 0.5m 小箱 → 唯一存活框 (0.3,3.8)；删箱框 1s 内消失 |
 | YOLO 检测分支（玻璃/塑料袋） | ⬜ 下一步 | 阶段 A：ultralytics 节点 + /fp/detections |
-| 语义×几何合流（Phase 2/3） | ⬜ 排队 | 见 ROS2感知搭建方案.md §11 |
+| 语义×几何合流（Phase 2/3） | ⬜ 排队 | 见 docs/03_plan_v2_pipeline.md §11 |
 
 ## 关键环境要求（WSL2）
 
@@ -92,8 +92,8 @@ ros2 run gazebo_ros spawn_entity.py -entity win_pt -x -4 -y 8 -z 0 -Y 1.5708 \
 
 ## 相关文档
 
-- 建图操作：docs/build_map.md
-- 导航操作：docs/nav.md
-- 标定：docs/calib.md
-- 障碍物感知模块：docs/perception.md
-- 总体方案与阶段：ROS2感知搭建方案.md（v2）
+- 建图操作：docs/05_slam_mapping.md
+- 导航操作：docs/06_navigation.md
+- 标定：docs/04_calibration.md
+- 障碍物感知模块：docs/07_obstacle_07_obstacle_perception.md
+- 总体方案与阶段：docs/03_plan_v2_pipeline.md（v2）
