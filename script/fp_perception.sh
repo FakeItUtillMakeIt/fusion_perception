@@ -25,7 +25,7 @@ trap cleanup EXIT INT TERM
 
 echo "[fp] 启动 sim + ekf + scan ..."
 ros2 launch fp_factory_sim sim.launch.py \
-    world:=$P/worlds/factory1.world xacro:=$P/urdf/factory_robot1.xacro &
+    world:=$P/worlds/factory1.world xacro:=$P/urdf/factory_robot1.xacro  headless:=false&
 ros2 launch fp_factory_sim ekf.launch.py &
 ros2 launch fp_factory_sim scan.launch.py &
 

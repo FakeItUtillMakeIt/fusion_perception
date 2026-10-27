@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>fp_semantic_nav</name>
+  <version>0.1.0</version>
+  <description>Semantic glass avoidance: mask ground-line detector + costmap integration (standalone experiment package)</description>
+  <maintainer email="fusion@example.com">sevnce</maintainer>
+  <license>MIT</license>
+  <depend>rclpy</depend>
+  <exec_depend>fp_common</exec_depend>
+  <exec_depend>fp_ob_msgs</exec_depend>
+  <exec_depend>fp_factory_sim</exec_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>

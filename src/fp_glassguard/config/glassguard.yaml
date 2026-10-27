@@ -1,0 +1,30 @@
+glassguard:
+  ros__parameters:
+    # ① 掩码提案源
+    glass_ids: [8, 147, 130]     # windowpane/glass/screen(合成面板实际类)
+    negative_mode: false         # 真机+微调模型前保持关
+    wall_ids: [0, 5]
+    roi_hold_sec: 30.0
+    # ② 柱状结构
+    voxel_m: 0.10
+    min_layers: 3                # 垂直柱: >=3 个 5cm 高度层被占据
+    min_support_cols: 3          # 候选平面至少几根柱支撑
+    panel_height_m: 1.8
+    max_range_m: 12.0
+    foot_gate_m: 2.5             # 平面深度与掩码底沿投影距离之差上限
+    # ③ 无深度投影验证
+    min_iou: 0.70                # 平面投影落在掩码内的比例(containment)
+    max_interior_frac: 0.75      # 沿线柱覆盖率上限: 实心墙~1.0 被拒; 中梃窗~0.3-0.5 通过
+    depth_band_m: 0.5
+    # ④ 假设管理
+    merge_dist_m: 0.6
+    merge_angle_deg: 20.0
+    keep_iou: 0.12
+    max_miss_frames: 25
+    support_decay: 0.85
+    min_pub_support: 2.0
+    hyp_ttl_s: 15.0
+    floor_evict_frac: 0.6        # 条带被连续地面回波占据比例 -> 驱逐
+    # 标定
+    ground_z_lidar: -0.525
+    lidar_xyz_in_base: [0.25, 0.0, 0.525]

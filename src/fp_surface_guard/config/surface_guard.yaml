@@ -1,0 +1,19 @@
+surface_builder:
+  ros__parameters:
+    # ADE20K 类 id：玻璃(windowpane/glass)、水(water/river/pool)、楼梯(stairs/stairway/step)
+    glass_ids: [8, 147, 130]   # 130=screen: 合成蓝色面板在仿真中的实际类别
+    water_ids: [21, 60, 109]
+    stair_ids: [53, 59, 121]
+    # 负候选（仿真兜底：合成玻璃被误分为 wall/ceiling 时的候选来源，真实数据可关）
+    wall_ids: [0, 5]
+    negative_mode: false   # 合成场景分类器失效(全图wall/ceiling)时不可靠: 候选区=整个房间. 真机+微调模型后再开; 仿真演示用 manual_roi 作为可信掩码源
+    gap_px: 20
+    min_area_px: 1500
+    # 几何验证/修正
+    seed_check_m: 1.0        # 种子中位距离与掩码底沿投影距离之差阈值(米)
+    strip_depth_m: 0.6       # 竖直面板地面条带厚度
+    max_range_m: 12.0
+    hold_sec: 4.0
+    nonground_z_min: 0.10
+    ground_z_lidar: -0.525
+    lidar_xyz_in_base: [0.25, 0.0, 0.525]

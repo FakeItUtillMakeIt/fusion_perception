@@ -1,0 +1,7 @@
+glass_detector:
+  ros__parameters:
+    wall_ids: [0, 5]        # 实体类语义像素：wall + ceiling(蓝色合成玻璃被判ceiling)
+    glass_ids: [8, 147]
+    negative_mode: true
+    gap_px: 20
+    min_area_px: 2000

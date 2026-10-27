@@ -1,0 +1,20 @@
+# 本仓库实际依赖的 ROS2 Humble / 系统包 (Ubuntu 22.04 jammy)
+ros-humble-desktop
+ros-humble-xacro
+ros-humble-robot-state-publisher
+ros-humble-joint-state-publisher-gui
+ros-humble-nav2-bringup
+ros-humble-slam-toolbox
+ros-humble-robot-localization
+ros-humble-pointcloud-to-laserscan
+ros-humble-cv-bridge
+ros-humble-camera-info-manager
+ros-humble-tf2-tools
+ros-humble-rviz2
+ros-humble-gazebo-ros-pkgs
+python3-colcon-common-extensions
+python3-pip
+git
+curl
+gnupg
+software-properties-common

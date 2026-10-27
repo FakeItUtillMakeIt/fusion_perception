@@ -1,0 +1,26 @@
+name: robot_ros2
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - openssl
+  - libffi
+  - readline
+  - tk
+  - sqlite
+  - xz
+  - pip:
+    - numpy==1.26.4
+    - scipy==1.15.3
+    - opencv-python==4.11.0.86
+    - pillow
+    - lxml
+    - matplotlib
+    - requests
+    - huggingface_hub
+    - transformers
+    - ultralytics
+    - git+https://github.com/ultralytics/CLIP.git   # YOLO-World 文本编码依赖
+# torch/torchvision 不在此列: 必须按目标机 GPU 的 CUDA 版本单独安装, 见 setup.sh 第 4 步
+# 完整参考锁定版本见 pip_freeze_reference.txt

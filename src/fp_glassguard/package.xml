@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>fp_glassguard</name>
+  <version>0.1.0</version>
+  <description>GlassGuard paper pipeline: columnar 3D candidates, depth-free projection
+    verification, revisable global hypothesis management. Output uses fp_surface_guard
+    Surface contract; existing packages untouched.</description>
+  <maintainer email="fusion@example.com">sevnce</maintainer>
+  <license>MIT</license>
+  <depend>rclpy</depend>
+  <exec_depend>fp_common</exec_depend>
+  <exec_depend>fp_surface_guard</exec_depend>
+  <exec_depend>fp_factory_sim</exec_depend>
+  <export><build_type>ament_python</build_type></export>
+</package>

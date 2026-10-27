@@ -75,3 +75,9 @@ frames_*.gv
 frames_*.pdf
 __pycache__/
 *.pyc
+*.pt
+
+# 权重/测试媒体: 联网自动下载, 不入库
+weights/
+*.pt
+*.mp4

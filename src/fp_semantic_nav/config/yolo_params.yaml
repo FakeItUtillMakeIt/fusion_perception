@@ -1,0 +1,4 @@
+yolo_roi:
+  ros__parameters:
+    conf_thresh: 0.10
+    text_classes: ["glass panel", "glass door", "glass wall", "window", "blue panel", "transparent panel", "plastic sheet"]

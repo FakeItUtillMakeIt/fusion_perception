@@ -81,13 +81,13 @@ ros2 run fp_perception segformer_node --ros-args -p policy_path:=src/fp_bringup/
 | collision-only | ❌ 打中（33点） | 看不到 | 反例 |
 | **visual-only（无 collision）** | ✅ **穿透（0点）** | ✅ | **正确配方** |
 
-已按此生成 `/home/sevnce/model_editor_models/window/model_lidar_passthru.sdf`：
+已按此生成 `src/fp_factory_sim/models/window/model_lidar_passthru.sdf`：
 玻璃=纯 visual（SkyBlue+transparency 0.7），底框/边柱=visual+collision（激光可见、挡车）。
 spawn 用 `-Y 1.5708` 横置，位置自定。代价：机器人物理上可穿过玻璃面（由框柱部分阻挡）。
 
 ```bash
 ros2 run gazebo_ros spawn_entity.py -entity win_pt -x -4 -y 8 -z 0 -Y 1.5708 \
-    -file /home/sevnce/model_editor_models/window/model_lidar_passthru.sdf
+    -file src/fp_factory_sim/models/window/model_lidar_passthru.sdf
 ```
 
 ## 相关文档

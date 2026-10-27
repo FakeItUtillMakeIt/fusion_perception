@@ -1,0 +1,10 @@
+<library path="surface_override_layer">
+  <class name="fp_surface_guard/SurfaceOverrideLayer"
+         type="fp_surface_guard::SurfaceOverrideLayer"
+         base_class_type="nav2_costmap_2d::Layer">
+    <description>
+      GlassGuard-style layer: vision-proposed, geometry-verified surfaces
+      (glass/water/stair) override lidar-reported free space with per-class cost/TTL.
+    </description>
+  </class>
+</library>

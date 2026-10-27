@@ -1,0 +1,45 @@
+<?xml version='1.0'?>
+<sdf version='1.7'>
+  <model name='window_passthru'>
+    <static>1</static>
+    <link name='glass'>
+      <visual name='glass_visual'>
+        <pose>0 0 0.9 0 -0 0</pose>
+        <geometry><box><size>6.0 0.05 1.8</size></box></geometry>
+        <material>
+          <script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/Blue</name></script>
+          <ambient>0.1 0.3 0.9 1</ambient><diffuse>0.15 0.4 1.0 1</diffuse><specular>1 1 1 1</specular>
+          <emissive>0.1 0.25 0.8 1</emissive>
+        </material>
+        <transparency>0.15</transparency>
+      </visual>
+    </link>
+    <link name='frame'>
+      <visual name='frame_top_visual'>
+        <pose>0 0 1.75 0 -0 0</pose>
+        <geometry><box><size>6.1 0.12 0.12</size></box></geometry>
+        <material><ambient>0.15 0.15 0.15 1</ambient><diffuse>0.2 0.2 0.2 1</diffuse></material></visual>
+      <visual name='frame_top_col_v'><pose>0 0 1.75 0 -0 0</pose>
+        <geometry><box><size>6.1 0.12 0.12</size></box></geometry></visual>
+      <visual name='frame_visual'>
+        <pose>0 0 0.05 0 -0 0</pose>
+        <geometry><box><size>6.1 0.1 0.1</size></box></geometry>
+        <material><ambient>0.4 0.3 0.2 1</ambient><diffuse>0.6 0.5 0.3 1</diffuse></material>
+      </visual>
+      <collision name='frame_collision'>
+        <pose>0 0 0.05 0 -0 0</pose>
+        <geometry><box><size>6.1 0.1 0.1</size></box></geometry>
+      </collision>
+      <visual name='post_l_visual'><pose>-3.05 0 0.9 0 -0 0</pose>
+        <geometry><box><size>0.1 0.1 1.8</size></box></geometry>
+        <material><ambient>0.4 0.3 0.2 1</ambient><diffuse>0.6 0.5 0.3 1</diffuse></material></visual>
+      <collision name='post_l_col'><pose>-3.05 0 0.9 0 -0 0</pose>
+        <geometry><box><size>0.1 0.1 1.8</size></box></geometry></collision>
+      <visual name='post_r_visual'><pose>3.05 0 0.9 0 -0 0</pose>
+        <geometry><box><size>0.1 0.1 1.8</size></box></geometry>
+        <material><ambient>0.4 0.3 0.2 1</ambient><diffuse>0.6 0.5 0.3 1</diffuse></material></visual>
+      <collision name='post_r_col'><pose>3.05 0 0.9 0 -0 0</pose>
+        <geometry><box><size>0.1 0.1 1.8</size></box></geometry></collision>
+    </link>
+  </model>
+</sdf>
